@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  ::selection {
+    @apply bg-brand-500/20 text-brand-900 dark:text-brand-100;
+  }
+
+  body {
+    @apply bg-white dark:bg-zinc-950;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand-600 via-violet-600 to-fuchsia-600 bg-clip-text text-transparent dark:from-brand-400 dark:via-violet-400 dark:to-fuchsia-400;
+  }
+
+  .bg-grid {
+    background-image: linear-gradient(
+        to right,
+        rgb(99 102 241 / 0.08) 1px,
+        transparent 1px
+      ),
+      linear-gradient(to bottom, rgb(99 102 241 / 0.08) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .perspective-1200 {
+    perspective: 1200px;
+  }
+
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(
+      to right,
+      rgb(244 244 245 / 0.4) 8%,
+      rgb(228 228 231 / 0.8) 18%,
+      rgb(244 244 245 / 0.4) 33%
+    );
+    background-size: 700px 100%;
+    @apply dark:bg-zinc-800;
+  }
+}
+
+/* Slim scrollbars for chat panes */
+.nice-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.nice-scroll::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: rgb(161 161 170 / 0.4);
+}
+.nice-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}

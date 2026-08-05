@@ -1,0 +1,16 @@
+# Supabase local development config (optional, for supabase CLI users)
+project_id = "study-assistant"
+
+[db]
+major_version = 15
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**"]
+jwt_expiry = 3600
+enable_signup = true
+
+[storage]
+enabled = true
+file_size_limit = "20MB"
