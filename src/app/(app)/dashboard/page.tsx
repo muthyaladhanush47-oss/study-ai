@@ -1,7 +1,14 @@
-import { FileText, Flame, Layers, ListChecks, MessageSquareText, NotebookPen } from "lucide-react";
+import {
+  Clock,
+  FileText,
+  Flame,
+  Layers,
+  ListChecks,
+  NotebookPen,
+} from "lucide-react";
 import { getUser, createClient } from "@/lib/supabase/server";
 import { getDashboardStats } from "@/lib/analytics";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatTotalTime } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardClient } from "@/components/dashboard-client";
 import { DocumentsGrid } from "@/components/documents-grid";
@@ -40,21 +47,9 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           icon={<FileText className="h-5 w-5" />}
-          label="Documents"
+          label="PDFs uploaded"
           value={String(stats.documentsCount)}
           accent="from-primary to-blue-500"
-        />
-        <StatCard
-          icon={<Layers className="h-5 w-5" />}
-          label="Study sessions"
-          value={String(stats.totalActivities)}
-          accent="from-fuchsia-500 to-purple-500"
-        />
-        <StatCard
-          icon={<MessageSquareText className="h-5 w-5" />}
-          label="AI chats"
-          value={String(stats.chatSessions)}
-          accent="from-sky-500 to-cyan-500"
         />
         <StatCard
           icon={<NotebookPen className="h-5 w-5" />}
@@ -63,16 +58,28 @@ export default async function DashboardPage() {
           accent="from-violet-500 to-purple-600"
         />
         <StatCard
+          icon={<Layers className="h-5 w-5" />}
+          label="Flashcards studied"
+          value={String(stats.flashcardsStudied)}
+          accent="from-fuchsia-500 to-purple-500"
+        />
+        <StatCard
+          icon={<ListChecks className="h-5 w-5" />}
+          label="Quizzes completed"
+          value={String(stats.quizzesCompleted)}
+          accent="from-emerald-500 to-teal-500"
+        />
+        <StatCard
           icon={<Flame className="h-5 w-5" />}
-          label="Day streak"
+          label="Study streak"
           value={`${stats.streak}d`}
           accent="from-amber-500 to-orange-500"
         />
         <StatCard
-          icon={<ListChecks className="h-5 w-5" />}
-          label="Quiz questions"
-          value={String(stats.quizQuestionsAnswered)}
-          accent="from-emerald-500 to-teal-500"
+          icon={<Clock className="h-5 w-5" />}
+          label="Total study time"
+          value={formatTotalTime(stats.totalStudySeconds)}
+          accent="from-sky-500 to-cyan-500"
         />
       </div>
 

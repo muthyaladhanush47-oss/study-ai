@@ -12,7 +12,10 @@ export type DashboardStats = {
   quizQuestionsAnswered: number;
   chatSessions: number;
   notesCreated: number;
+  flashcardsStudied: number;
+  quizzesCompleted: number;
   quizAverageScore: number | null;
+  totalStudySeconds: number;
   streak: number;
   weekly: DayCount[];
 };
@@ -54,18 +57,23 @@ export async function getDashboardStats(
   since.setHours(0, 0, 0, 0);
   since.setDate(since.getDate() - 6);
 
-  const [{ count: documentsCount }, { data: activities }] = await Promise.all([
-    supabase
-      .from("documents")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId),
-    supabase
-      .from("study_activities")
-      .select("id, type, metadata, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(500),
-  ]);
+  const [{ count: documentsCount }, { data: activities }, { data: sessions }] =
+    await Promise.all([
+      supabase
+        .from("documents")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId),
+      supabase
+        .from("study_activities")
+        .select("id, type, metadata, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(500),
+      supabase
+        .from("study_sessions")
+        .select("seconds")
+        .eq("user_id", userId),
+    ]);
 
   const rows = (activities ?? []) as {
     id: string;
@@ -107,6 +115,13 @@ export async function getDashboardStats(
 
   const chatSessions = rows.filter((r) => r.type === "chat").length;
   const notesCreated = rows.filter((r) => r.type === "summary").length;
+  const flashcardsStudied = rows.filter((r) => r.type === "flashcards").length;
+  const quizzesCompleted = rows.filter((r) => r.type === "quiz").length;
+
+  const totalStudySeconds = (sessions ?? [])
+    .map((s) => Number((s as { seconds?: number }).seconds ?? 0))
+    .filter((n) => Number.isFinite(n))
+    .reduce((a, b) => a + b, 0);
 
   return {
     documentsCount: documentsCount ?? 0,
@@ -114,7 +129,10 @@ export async function getDashboardStats(
     quizQuestionsAnswered,
     chatSessions,
     notesCreated,
+    flashcardsStudied,
+    quizzesCompleted,
     quizAverageScore,
+    totalStudySeconds,
     streak: computeStreak(rows.map((r) => r.created_at)),
     weekly,
   };

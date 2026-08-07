@@ -1,14 +1,14 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import {
   ArrowRight,
-  BookOpenCheck,
   type LucideIcon,
   Sparkles,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { GoogleAd } from "@/components/ads/google-ad";
 import { JsonLd } from "@/components/seo/json-ld";
+import { MarketingShell } from "@/components/seo/marketing-shell";
 
 export type SeoFaq = { q: string; a: string };
 export type SeoFeature = { title: string; description: string };
@@ -24,6 +24,7 @@ type SeoToolPageProps = {
   steps: SeoStep[];
   faqs: SeoFaq[];
   softwareSchema: Record<string, unknown>;
+  toolSlot?: ReactNode;
 };
 
 export function SeoToolPage({
@@ -36,6 +37,7 @@ export function SeoToolPage({
   steps,
   faqs,
   softwareSchema,
+  toolSlot,
 }: SeoToolPageProps) {
   const faqSchema = {
     "@context": "https://schema.org",
@@ -48,48 +50,19 @@ export function SeoToolPage({
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <MarketingShell
+      nav={[
+        { href: "/", label: "Home" },
+        { href: "#features", label: "Features" },
+        { href: "#how-it-works", label: "How it works" },
+        { href: "#faq", label: "FAQ" },
+        { href: "/blog", label: "Blog" },
+      ]}
+    >
       <JsonLd data={softwareSchema} />
       <JsonLd data={faqSchema} />
 
-      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-fuchsia-600 text-white">
-              <BookOpenCheck className="h-4 w-4" />
-            </span>
-            <span className="font-heading text-lg font-bold tracking-tight">
-              Study<span className="text-gradient">AI</span>
-            </span>
-          </Link>
-          <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground sm:flex">
-            <a href="#features" className="transition hover:text-foreground">
-              Features
-            </a>
-            <a href="#how-it-works" className="transition hover:text-foreground">
-              How it works
-            </a>
-            <a href="#faq" className="transition hover:text-foreground">
-              FAQ
-            </a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <Link href="/login" className="hidden sm:block">
-              <Button variant="ghost" size="sm">
-                Log in
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button size="sm">
-                Get started <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1">
+      <div className="flex-1">
         {/* Hero */}
         <section className="relative overflow-hidden">
           <div className="absolute inset-0 bg-grid [mask-image:radial-gradient(ellipse_at_top,black_40%,transparent_75%)]" />
@@ -130,6 +103,8 @@ export function SeoToolPage({
         </section>
 
         <GoogleAd slot={adSlot} format="auto" className="mx-auto max-w-6xl px-4 sm:px-6" />
+
+        {toolSlot}
 
         {/* Features */}
         <section id="features" className="border-t border-border bg-muted/40 py-20">
@@ -237,24 +212,7 @@ export function SeoToolPage({
             </div>
           </div>
         </section>
-      </main>
-
-      <footer className="border-t border-border py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary to-fuchsia-600 text-white">
-              <BookOpenCheck className="h-3 w-3" />
-            </span>
-            <span className="font-heading text-sm font-semibold">
-              Study<span className="text-gradient">AI</span>
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Study smarter with AI · Free and ad-supported · Powered by Next.js,
-            Supabase & OpenRouter
-          </p>
-        </div>
-      </footer>
-    </div>
+      </div>
+    </MarketingShell>
   );
 }

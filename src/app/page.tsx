@@ -428,21 +428,78 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-border py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary to-fuchsia-600 text-white">
-              <BookOpenCheck className="h-3 w-3" />
-            </span>
-            <span className="font-heading text-sm font-semibold">
-              Study
-              <span className="text-gradient">AI</span>
-            </span>
+      <footer className="border-t border-border py-12">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary to-fuchsia-600 text-white">
+                  <BookOpenCheck className="h-3 w-3" />
+                </span>
+                <span className="font-heading text-sm font-semibold">
+                  Study<span className="text-gradient">AI</span>
+                </span>
+              </div>
+              <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
+                Turn any PDF — typed or handwritten — into summaries, flashcards,
+                quizzes, mind maps and an AI tutor. Free and ad-supported.
+              </p>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold">Product</h3>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                {[
+                  ["/notes", "AI Notes"],
+                  ["/pdf-summarizer", "PDF Summarizer"],
+                  ["/ocr", "Handwriting OCR"],
+                  ["/flashcards", "Flashcards"],
+                  ["/mindmap", "Mind Maps"],
+                ].map(([href, label]) => (
+                  <li key={href}>
+                    <Link href={href} className="transition hover:text-foreground">
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold">Company</h3>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                {[
+                  ["/about", "About"],
+                  ["/contact", "Contact"],
+                  ["/blog", "Study Tips Blog"],
+                ].map(([href, label]) => (
+                  <li key={href}>
+                    <Link href={href} className="transition hover:text-foreground">
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold">Legal</h3>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                {[
+                  ["/privacy", "Privacy Policy"],
+                  ["/terms", "Terms & Conditions"],
+                  ["/disclaimer", "Disclaimer"],
+                ].map(([href, label]) => (
+                  <li key={href}>
+                    <Link href={href} className="transition hover:text-foreground">
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Study smarter with AI · Free and ad-supported · Powered by Next.js,
-            Supabase & OpenRouter
-          </p>
+          <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
+            © {new Date().getFullYear()} StudyAI. Study smarter with AI · Free and
+            ad-supported · Powered by Next.js, Supabase & OpenRouter
+          </div>
         </div>
       </footer>
     </div>

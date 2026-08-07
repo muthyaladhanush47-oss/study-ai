@@ -99,8 +99,9 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 1. Open your Supabase project → **SQL Editor**.
 2. Run `supabase/migrations/20250101000000_init.sql` first, then
-   `supabase/migrations/20260201000000_upgrade.sql`.
-   Together they create the tables, enable Row Level Security, and create the private `documents` storage bucket with per-user policies. Apply the upgrade even on a fresh project (it adds OCR fields, learner profiles, and chat memory).
+   `supabase/migrations/20260201000000_upgrade.sql`, then
+   `supabase/migrations/20260807000000_study_sessions.sql`.
+   Together they create the tables, enable Row Level Security, and create the private `documents` storage bucket with per-user policies. The upgrades add OCR fields, learner profiles, chat memory, and study-time tracking.
 
 ### Configure auth redirects (Supabase Dashboard → Authentication → URL Configuration)
 
@@ -153,7 +154,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 - [ ] Add your production URL to Supabase **Redirect URLs** (`https://<app>.vercel.app/auth/callback`).
 - [ ] Update `NEXT_PUBLIC_APP_URL` to your production URL.
-- [ ] Run both SQL migrations in the Supabase SQL Editor.
+- [ ] Run all three SQL migrations in the Supabase SQL Editor.
 - [ ] Test signup, upload, OCR, and each AI feature.
 
 ---

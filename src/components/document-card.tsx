@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 
 const actions = [
   { href: "/chat", label: "Chat", icon: MessageSquareText },
+  { href: "/pdf-summarizer", label: "Summarize", icon: FileText },
   { href: "/summaries", label: "Notes", icon: Layers },
   { href: "/flashcards", label: "Cards", icon: Brain },
   { href: "/quiz", label: "Quiz", icon: Sparkles },
@@ -107,11 +108,15 @@ export function DocumentCard({
           </button>
         )}
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
+        <div className="mt-4 grid grid-cols-3 gap-2">
           {actions.map((action) => (
             <a
               key={action.label}
-              href={`${action.href}/${document.id}`}
+              href={
+                action.href === "/pdf-summarizer"
+                ? `${action.href}?id=${document.id}`
+                : `${action.href}/${document.id}`
+              }
               aria-disabled={needsOcr}
               onClick={(e) => needsOcr && e.preventDefault()}
               className={cn(

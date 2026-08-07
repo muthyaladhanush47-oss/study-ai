@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const MAX_SIZE = 20 * 1024 * 1024;
+const MAX_SIZE = 100 * 1024 * 1024;
 
 export function UploadDialog({
   onUploaded,
@@ -41,7 +41,7 @@ export function UploadDialog({
       return;
     }
     if (selected.size > MAX_SIZE) {
-      setError("File must be under 20 MB.");
+      setError("File must be under 100 MB.");
       return;
     }
     setFile(selected);

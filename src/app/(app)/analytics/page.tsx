@@ -1,5 +1,6 @@
 import { getUser, createClient } from "@/lib/supabase/server";
 import { getDashboardStats, computeStreak } from "@/lib/analytics";
+import { formatTotalTime } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GoogleAd } from "@/components/ads/google-ad";
 
@@ -23,10 +24,7 @@ export default async function AnalyticsPage() {
     ? activityBreakdown(activities ?? [])
     : [];
 
-  const avgPerSession =
-    stats.totalActivities > 0
-      ? (stats.quizQuestionsAnswered / stats.totalActivities).toFixed(1)
-      : "—";
+  const totalTime = formatTotalTime(stats.totalStudySeconds);
 
   const typeLabels: Record<string, string> = {
     summary: "Summaries",
@@ -59,11 +57,8 @@ export default async function AnalyticsPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MiniStat label="AI chats" value={String(stats.chatSessions)} />
         <MiniStat label="Notes created" value={String(stats.notesCreated)} />
-        <MiniStat
-          label="Quiz questions"
-          value={String(stats.quizQuestionsAnswered)}
-        />
-        <MiniStat label="Avg questions per session" value={avgPerSession} />
+        <MiniStat label="Flashcards studied" value={String(stats.flashcardsStudied)} />
+        <MiniStat label="Total study time" value={totalTime} />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">

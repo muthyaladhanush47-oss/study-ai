@@ -16,7 +16,7 @@ const SYSTEM = [
   "Split the document into chapters or logical sections. For each chapter build a sections array.",
   "Allowed section kinds and their content rules:",
   "- definition: the core concept, written in plain student-friendly words.",
-  "- remember: a short sentence starting with 'Remember —' that captures the most important idea.",
+  "- remember: a bullet titled 'Important Points' — 2-3 short sentences capturing the most important ideas.",
   "- trick: a memory trick / mnemonic / shortcut. If there is a known mnemonic, include it.",
   "- equation: a compact formula or equation (use plain text with arrows; the UI renders it large).",
   "- examQuestions: 2-4 exam-style questions a teacher would actually ask.",
@@ -28,7 +28,7 @@ const SYSTEM = [
 
 const SCHEMA: Record<NoteSection["kind"], { label: string }> = {
   definition: { label: "Definition" },
-  remember: { label: "Remember" },
+  remember: { label: "Important Points" },
   trick: { label: "Trick" },
   equation: { label: "Equation" },
   examQuestions: { label: "Exam questions" },

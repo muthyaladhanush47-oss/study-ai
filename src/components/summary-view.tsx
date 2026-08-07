@@ -24,7 +24,7 @@ const sectionMeta: Record<
   { label: string; emoji: string; icon: typeof Pencil; accent: string }
 > = {
   definition: { label: "Definition", emoji: "✍", icon: Pencil, accent: "text-sky-600 dark:text-sky-400" },
-  remember: { label: "Remember", emoji: "⭐", icon: Star, accent: "text-amber-600 dark:text-amber-400" },
+  remember: { label: "Important Points", emoji: "⭐", icon: Star, accent: "text-amber-600 dark:text-amber-400" },
   trick: { label: "Trick", emoji: "💡", icon: Lightbulb, accent: "text-violet-600 dark:text-violet-400" },
   equation: { label: "Equation", emoji: "🌳", icon: Sigma, accent: "text-emerald-600 dark:text-emerald-400" },
   examQuestions: { label: "Exam questions", emoji: "📝", icon: ListChecks, accent: "text-rose-600 dark:text-rose-400" },

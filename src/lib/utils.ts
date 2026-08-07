@@ -42,3 +42,11 @@ export function getInitials(name?: string | null, fallback = "SA"): string {
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
+
+export function formatTotalTime(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds));
+  if (total < 60) return `${total}m`;
+  const hours = Math.floor(total / 3600);
+  const mins = Math.round((total % 3600) / 60);
+  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+}

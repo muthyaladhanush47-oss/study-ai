@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { FileText } from "lucide-react";
 import { SeoToolPage } from "@/components/seo/seo-tool-page";
+import { PdfSummarizerTool } from "@/components/seo/pdf-summarizer-tool";
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://study-ai-two-sable.vercel.app";
 
@@ -96,6 +97,7 @@ export default function PdfSummarizerPage() {
       title="Turn long PDFs into clear, chapter-by-chapter summaries"
       subtitle="Upload a textbook, lecture notes or research paper and get a concise overview plus per-chapter summaries with key points — in under a minute, completely free."
       adSlot="studyai-pdf-summarizer"
+      toolSlot={<PdfSummarizerTool />}
       features={features}
       steps={steps}
       faqs={faqs}
