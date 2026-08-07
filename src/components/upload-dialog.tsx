@@ -62,7 +62,12 @@ export function UploadDialog({
       const res = await fetch("/api/upload", { method: "POST", body: formData });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error ?? "Upload failed. Please try again.");
+
+        console.log("Upload API Error:", body);
+
+        throw new Error(
+        body?.error ?? `Upload failed (${res.status})`
+       );
       }
       const data = (await res.json()) as {
         document: { id: string };

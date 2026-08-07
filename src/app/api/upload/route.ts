@@ -5,7 +5,7 @@ import { parsePdf, isLikelyScanned, MAX_STORED_CHARS } from "@/lib/pdf";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-const MAX_SIZE = 20 * 1024 * 1024;
+const MAX_SIZE = 100 * 1024 * 1024;
 
 const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   if (file.size > MAX_SIZE) {
     return NextResponse.json(
-      { error: "File exceeds the 20 MB limit" },
+      { error: "File exceeds the 100 MB limit" },
       { status: 413 },
     );
   }
@@ -88,11 +88,13 @@ export async function POST(request: NextRequest) {
     });
 
   if (uploadError) {
-    return NextResponse.json(
-      { error: `Storage upload failed: ${uploadError.message}` },
-      { status: 500 },
-    );
-  }
+  console.error("Storage Upload Error:", uploadError);
+
+  return NextResponse.json(
+    { error: `Storage upload failed: ${uploadError.message}` },
+    { status: 500 },
+  );
+}
 
   const { data: document, error: docError } = await supabase
     .from("documents")
@@ -109,26 +111,32 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (docError || !document) {
-    await supabase.storage.from("documents").remove([filePath]);
-    return NextResponse.json(
-      { error: docError?.message ?? "Failed to create document." },
-      { status: 500 },
-    );
-  }
+ if (docError || !document) {
+  console.error("Document Insert Error:", docError);
+
+  await supabase.storage.from("documents").remove([filePath]);
+
+  return NextResponse.json(
+    { error: docError?.message ?? "Failed to create document." },
+    { status: 500 },
+  );
+}
 
   const { error: contentError } = await supabase
     .from("document_content")
     .insert({ document_id: document.id, content: needsOcr ? "" : text });
 
   if (contentError) {
-    await supabase.storage.from("documents").remove([filePath]);
-    await supabase.from("documents").delete().eq("id", document.id);
-    return NextResponse.json(
-      { error: `Failed to index document: ${contentError.message}` },
-      { status: 500 },
-    );
-  }
+  console.error("Document Content Error:", contentError);
+
+  await supabase.storage.from("documents").remove([filePath]);
+  await supabase.from("documents").delete().eq("id", document.id);
+
+  return NextResponse.json(
+    { error: `Failed to index document: ${contentError.message}` },
+    { status: 500 },
+  );
+}
 
   return NextResponse.json({ document, needsOcr }, { status: 201 });
 }
