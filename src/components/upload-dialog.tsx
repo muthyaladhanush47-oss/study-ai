@@ -100,7 +100,7 @@ export function UploadDialog({
             <DialogTitle>Upload notes</DialogTitle>
             <DialogDescription>
               Typed PDF or a photo of handwritten notes, a whiteboard or a
-              textbook page — StudyAI reads them all. Max 20 MB.
+              textbook page — StudyAI reads them all. Max 100 MB.
             </DialogDescription>
           </DialogHeader>
 
@@ -143,7 +143,7 @@ export function UploadDialog({
                     <span className="text-primary">browse</span>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    PDF, JPG, PNG or WebP up to 20 MB
+                    PDF, JPG, PNG or WebP up to 100 MB
                   </p>
                 </>
               )}

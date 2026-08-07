@@ -77,24 +77,54 @@ export async function POST(request: NextRequest) {
   }
 
   const doc = await getOwnedDocument(supabase, user.id, documentId);
-  if (!doc) {
-    return NextResponse.json({ error: "Document not found" }, { status: 404 });
-  }
 
-  if (!doc.content.trim()) {
-    return NextResponse.json(
-      { error: "This PDF has no extractable text to turn into notes." },
-      { status: 422 },
-    );
-  }
+if (!doc) {
+  return NextResponse.json(
+    { error: "Document not found" },
+    { status: 404 }
+  );
+}
 
-  const raw = await openRouterChat({
+// ===== DEBUG LOGS =====
+console.log("Document ID:", doc.id);
+console.log("Document title:", doc.title);
+console.log("Document characters:", doc.content.length);
+console.log("Document preview:", doc.content.slice(0, 300));
+// ======================
+
+if (!doc.content.trim()) {
+  return NextResponse.json(
+    { error: "This PDF has no extractable text to turn into notes." },
+    { status: 422 },
+  );
+}
+
+  let raw: string;
+
+try {
+  raw = await openRouterChat({
     system: SYSTEM,
-    messages: [{ role: "user", content: doc.content }],
+    messages: [
+      {
+        role: "user",
+        content: doc.content,
+      },
+    ],
     temperature: 0.4,
     maxTokens: 8192,
     json: true,
   });
+} catch (error) {
+  console.error("OpenRouter Error:", error);
+
+  return NextResponse.json(
+    {
+      error: "Failed to generate summary",
+      details: error instanceof Error ? error.message : String(error),
+    },
+    { status: 500 }
+  );
+}
 
   const parsed = extractJson<NotesResult>(raw);
   const notes: StudyNote[] = Array.isArray(parsed.notes)
