@@ -1,7 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Caveat, Geist, Inter, Kalam, Patrick_Hand } from "next/font/google";
+import Script from "next/script";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AdsenseLoader } from "@/components/ads/adsense-loader";
+import { cn } from "@/lib/utils";
 import "./globals.css";
+
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+  display: "swap",
+});
 
 const inter = Inter({
   subsets: ["latin"],
@@ -9,38 +18,79 @@ const inter = Inter({
   display: "swap",
 });
 
+const patrickHand = Patrick_Hand({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-patrick-hand",
+  display: "swap",
+});
+
+const caveat = Caveat({
+  subsets: ["latin"],
+  variable: "--font-caveat",
+  display: "swap",
+});
+
+const kalam = Kalam({
+  weight: ["300", "400", "700"],
+  subsets: ["latin"],
+  variable: "--font-kalam",
+  display: "swap",
+});
+
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://study-ai-two-sable.vercel.app";
+
 export const metadata: Metadata = {
   title: {
     default: "StudyAI — AI Study Assistant",
     template: "%s · StudyAI",
   },
   description:
-    "Upload your PDF notes and let AI turn them into summaries, flashcards, quizzes, and an interactive study chatbot.",
-  keywords: ["study", "AI", "flashcards", "quiz", "notes", "PDF"],
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+    "Upload any PDF — typed or handwritten — and let AI read it for you. Get chapter summaries, flashcards, quizzes, mind maps, and a smart study tutor that answers from your own notes.",
+  keywords: [
+    "AI study assistant",
+    "handwritten notes OCR",
+    "PDF summarizer",
+    "flashcards generator",
+    "quiz generator",
+    "study app",
+    "mind map generator",
+  ],
+  metadataBase: new URL(appUrl),
   openGraph: {
     title: "StudyAI — AI Study Assistant",
     description:
-      "Upload your PDF notes and let AI turn them into summaries, flashcards, quizzes, and an interactive study chatbot.",
+      "Turn any PDF — including handwritten notes — into summaries, flashcards, quizzes, mind maps and an AI tutor that knows your material.",
     type: "website",
+    url: appUrl,
+    siteName: "StudyAI",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "StudyAI — AI Study Assistant",
+    description:
+      "Upload any PDF — typed or handwritten — and study with AI. Summaries, flashcards, quizzes, mind maps.",
+  },
+  alternates: {
+    canonical: "/",
   },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#12101c" },
   ],
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const adClient = process.env.NEXT_PUBLIC_AD_CLIENT;
+
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${inter.variable} min-h-screen bg-white font-sans text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100`}
-      >
+    <html lang="en" suppressHydrationWarning className={cn(geist.variable, inter.variable, patrickHand.variable, caveat.variable, kalam.variable)}>
+      <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -49,6 +99,16 @@ export default function RootLayout({
         >
           {children}
         </ThemeProvider>
+        <AdsenseLoader adClient={adClient} />
+        {adClient && (
+          <Script
+            id="adsense-init"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `window.adsbygoogle = window.adsbygoogle || [];`,
+            }}
+          />
+        )}
       </body>
     </html>
   );

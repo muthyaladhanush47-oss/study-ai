@@ -1,91 +1,144 @@
-import { BookOpen, FileText, Layers, Sparkles } from "lucide-react";
-import { getUser } from "@/lib/supabase/server";
-import { UploadDialog } from "@/components/upload-dialog";
-import { DocumentsGrid } from "@/components/documents-grid";
+import { FileText, Flame, Layers, ListChecks, MessageSquareText, NotebookPen } from "lucide-react";
+import { getUser, createClient } from "@/lib/supabase/server";
+import { getDashboardStats } from "@/lib/analytics";
 import { formatDate } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardClient } from "@/components/dashboard-client";
+import { DocumentsGrid } from "@/components/documents-grid";
+import { WeeklyChart } from "@/components/weekly-chart";
+import { GoogleAd } from "@/components/ads/google-ad";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const user = await getUser();
+  if (!user) return null;
+
+  const supabase = await createClient();
+  const stats = await getDashboardStats(supabase, user.id);
 
   const firstName =
-    (user?.user_metadata?.full_name as string)?.split(" ")[0] ||
-    user?.email?.split("@")[0] ||
+    (user.user_metadata?.full_name as string)?.split(" ")[0] ||
+    user.email?.split("@")[0] ||
     "Student";
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
             Welcome back,{" "}
             <span className="text-gradient capitalize">{firstName}</span>
           </h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Upload your notes and turn them into study tools.
+          <p className="mt-1 text-sm text-muted-foreground">
+            Turn any PDF — typed or handwritten — into study tools.
           </p>
         </div>
-        <UploadDialog />
+        <DashboardClient />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard
+          icon={<FileText className="h-5 w-5" />}
+          label="Documents"
+          value={String(stats.documentsCount)}
+          accent="from-primary to-blue-500"
+        />
+        <StatCard
+          icon={<Layers className="h-5 w-5" />}
+          label="Study sessions"
+          value={String(stats.totalActivities)}
+          accent="from-fuchsia-500 to-purple-500"
+        />
+        <StatCard
+          icon={<MessageSquareText className="h-5 w-5" />}
+          label="AI chats"
+          value={String(stats.chatSessions)}
+          accent="from-sky-500 to-cyan-500"
+        />
+        <StatCard
+          icon={<NotebookPen className="h-5 w-5" />}
+          label="Notes created"
+          value={String(stats.notesCreated)}
+          accent="from-violet-500 to-purple-600"
+        />
+        <StatCard
+          icon={<Flame className="h-5 w-5" />}
+          label="Day streak"
+          value={`${stats.streak}d`}
+          accent="from-amber-500 to-orange-500"
+        />
+        <StatCard
+          icon={<ListChecks className="h-5 w-5" />}
+          label="Quiz questions"
+          value={String(stats.quizQuestionsAnswered)}
+          accent="from-emerald-500 to-teal-500"
+        />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardContent className="flex items-start gap-4 p-5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-400">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">Your study hub</p>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Every document below can be turned into a chapter summary,
-                flashcard deck, practice quiz, or live chat in one click.
-              </p>
-            </div>
+          <CardHeader>
+            <CardTitle>Weekly activity</CardTitle>
+            <CardDescription>Study sessions over the last 7 days</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <WeeklyChart data={stats.weekly} className="h-44" />
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="flex items-start gap-4 p-5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">AI generated</p>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Content is grounded in your uploaded notes.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-start gap-4 p-5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
-              <BookOpen className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">Member since</p>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                {user?.created_at
-                  ? formatDate(user.created_at)
-                  : "—"}
-              </p>
-            </div>
+          <CardHeader>
+            <CardTitle>Member since</CardTitle>
+            <CardDescription>You&apos;ve been learning with us</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            <p className="text-2xl font-bold tracking-tight">
+              {user.created_at ? formatDate(user.created_at) : "—"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Keep your streak alive — study for 10 minutes a day.
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      <GoogleAd slot="studyai-dashboard" format="auto" className="min-h-24" />
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <Layers className="h-5 w-5 text-brand-600 dark:text-brand-400" />
-            Your documents
-          </h2>
-        </div>
-        {user && <DocumentsGrid userId={user.id} />}
+        <h2 className="font-heading text-lg font-semibold">Your documents</h2>
+        <DocumentsGrid userId={user.id} />
       </div>
     </div>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  accent: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-4 p-5">
+        <div
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${accent} text-white shadow-sm`}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm text-muted-foreground">{label}</p>
+          <p className="font-heading text-2xl font-bold tracking-tight">
+            {value}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

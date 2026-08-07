@@ -5,6 +5,14 @@ export type OwnedDocument = {
   id: string;
   title: string;
   content: string;
+  textSource?: string | null;
+  isOcrReady?: boolean | null;
+};
+
+export type Profile = {
+  display_name?: string | null;
+  learning_level?: string | null;
+  goal?: string | null;
 };
 
 /**
@@ -19,7 +27,7 @@ export async function getOwnedDocument(
 ): Promise<OwnedDocument | null> {
   const { data: doc } = await supabase
     .from("documents")
-    .select("id, title")
+    .select("id, title, text_source, is_ocr_ready")
     .eq("id", documentId)
     .eq("user_id", userId)
     .single();
@@ -36,7 +44,34 @@ export async function getOwnedDocument(
     id: doc.id,
     title: doc.title,
     content: truncate(content?.content ?? "", maxChars),
+    textSource: doc.text_source,
+    isOcrReady: doc.is_ocr_ready,
   };
+}
+
+export async function getProfile(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<Profile | null> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("display_name, learning_level, goal")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return (data as Profile | null) ?? null;
+}
+
+/**
+ * Turns a user's study profile into tutor instructions.
+ */
+export function buildStudyContext(profile: Profile | null): string {
+  const lines: string[] = [];
+  if (profile?.display_name) lines.push(`Call the student "${profile.display_name}".`);
+  const level = profile?.learning_level ?? "beginner";
+  lines.push(`Explain at a ${level} level and gradually build up.`);
+  if (profile?.goal) lines.push(`The student's goal: ${profile.goal}.`);
+  return lines.join(" ");
 }
 
 export async function logActivity(

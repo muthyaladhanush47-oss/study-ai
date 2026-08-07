@@ -1,12 +1,20 @@
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
 
-type OpenRouterMessage = {
+// Powerful, cheap, 1M-context workhorse — great for summaries & chat.
+const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
+// Vision-capable model used to read handwriting from page images.
+const VISION_MODEL = process.env.OPENROUTER_VISION_MODEL || "google/gemini-2.5-flash";
+
+export type OpenRouterContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
+export type OpenRouterMessage = {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | OpenRouterContentPart[];
 };
 
-type OpenRouterOptions = {
+export type OpenRouterOptions = {
   system?: string;
   messages: OpenRouterMessage[];
   temperature?: number;
@@ -24,7 +32,7 @@ async function requestOpenRouter(
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      "X-Title": "Study Assistant",
+      "X-Title": "StudyAI",
     },
     body: JSON.stringify(body),
     signal,
@@ -45,18 +53,24 @@ async function requestOpenRouter(
   return res;
 }
 
-export async function openRouterChat(options: OpenRouterOptions): Promise<string> {
+function resolveModel(overrides?: string): string {
+  return overrides ?? DEFAULT_MODEL;
+}
+
+export async function openRouterChat(
+  options: OpenRouterOptions,
+): Promise<string> {
   const {
     system,
     messages,
     temperature = 0.7,
-    maxTokens = 4096,
+    maxTokens = 8192,
     json = false,
     model,
   } = options;
 
   const res = await requestOpenRouter({
-    model: model ?? DEFAULT_MODEL,
+    model: resolveModel(model),
     messages: [
       ...(system ? [{ role: "system" as const, content: system }] : []),
       ...messages,
@@ -67,7 +81,7 @@ export async function openRouterChat(options: OpenRouterOptions): Promise<string
   });
 
   const data = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
+    choices?: { message?: { content?: string | OpenRouterContentPart[] } }[];
   };
 
   const content = data.choices?.[0]?.message?.content;
@@ -75,14 +89,24 @@ export async function openRouterChat(options: OpenRouterOptions): Promise<string
     throw new Error("OpenRouter returned an empty response.");
   }
 
+  if (typeof content !== "string") {
+    throw new Error("OpenRouter returned a non-text response.");
+  }
+
   return content;
 }
 
 export async function openRouterStream(options: OpenRouterOptions) {
-  const { system, messages, temperature = 0.7, maxTokens = 4096, model } = options;
+  const {
+    system,
+    messages,
+    temperature = 0.7,
+    maxTokens = 2048,
+    model,
+  } = options;
 
   const res = await requestOpenRouter({
-    model: model ?? DEFAULT_MODEL,
+    model: resolveModel(model),
     messages: [
       ...(system ? [{ role: "system" as const, content: system }] : []),
       ...messages,

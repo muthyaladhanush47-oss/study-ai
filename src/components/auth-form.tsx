@@ -9,6 +9,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
+function Field({
+  label,
+  ...props
+}: React.ComponentProps<typeof Input> & { label: string }) {
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={props.id} className="text-sm font-medium">
+        {label}
+      </label>
+      <Input {...props} />
+    </div>
+  );
+}
+
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
   const isSignup = mode === "signup";
@@ -73,16 +87,16 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   }
 
   return (
-    <Card className="w-full max-w-md animate-slide-up">
+    <Card className="w-full max-w-md shadow-xl">
       <CardHeader className="space-y-3 pt-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-violet-600 text-white">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-fuchsia-600 text-white">
           <BookOpenCheck className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="font-heading text-2xl font-bold tracking-tight">
             {isSignup ? "Create your account" : "Welcome back"}
           </h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1 text-sm text-muted-foreground">
             {isSignup
               ? "Start turning your notes into study tools."
               : "Log in to your study workspace."}
@@ -91,19 +105,19 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       </CardHeader>
       <CardContent className="px-8 pb-8">
         {notice && (
-          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+          <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
             {notice}
           </div>
         )}
         {error && (
-          <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-300">
+          <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
+          <Field
             id="email"
             label="Email"
             type="email"
@@ -113,7 +127,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <Input
+          <Field
             id="password"
             label="Password"
             type="password"
@@ -129,10 +143,10 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           </Button>
         </form>
 
-        <div className="my-5 flex items-center gap-3 text-xs text-zinc-400">
-          <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+        <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="h-px flex-1 bg-border" />
           or
-          <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+          <div className="h-px flex-1 bg-border" />
         </div>
 
         <Button
@@ -167,18 +181,18 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           Continue with Google
         </Button>
 
-        <p className="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           {isSignup ? (
             <>
               Already have an account?{" "}
-              <Link href="/login" className="font-medium text-brand-600 hover:underline dark:text-brand-400">
+              <Link href="/login" className="font-medium text-primary hover:underline">
                 Log in
               </Link>
             </>
           ) : (
             <>
               New here?{" "}
-              <Link href="/signup" className="font-medium text-brand-600 hover:underline dark:text-brand-400">
+              <Link href="/signup" className="font-medium text-primary hover:underline">
                 Create an account
               </Link>
             </>

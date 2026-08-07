@@ -2,10 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { openRouterStream } from "@/lib/openrouter";
 import { truncate } from "@/lib/pdf";
+import { getOwnedDocument, getProfile, buildStudyContext, logActivity } from "@/lib/ai/document";
 import type { ChatMessage } from "@/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
+
+const MAX_HISTORY = 50;
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -23,59 +26,161 @@ export async function POST(request: NextRequest) {
   };
 
   const documentId = body.documentId;
-  const messages = body.messages ?? [];
+  const clientMessages = body.messages ?? [];
 
-  if (!documentId || messages.length === 0) {
+  if (!documentId || clientMessages.length === 0) {
     return NextResponse.json(
       { error: "documentId and messages are required" },
       { status: 400 },
     );
   }
 
-  const { data: doc } = await supabase
-    .from("documents")
-    .select("id, title")
-    .eq("id", documentId)
-    .eq("user_id", user.id)
-    .single();
-
+  const doc = await getOwnedDocument(supabase, user.id, documentId);
   if (!doc) {
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
   }
 
-  const { data: content } = await supabase
-    .from("document_content")
-    .select("content")
-    .eq("document_id", documentId)
-    .single();
+  if (!doc.content.trim()) {
+    if (doc.textSource === "scanned" || doc.isOcrReady === false) {
+      return NextResponse.json(
+        { error: "This document still needs OCR. Please run OCR first." },
+        { status: 422 },
+      );
+    }
+    return NextResponse.json(
+      { error: "This PDF has no extractable text." },
+      { status: 422 },
+    );
+  }
 
-  const notes = content?.content ?? "";
-  const context = truncate(notes, 60_000);
+  // ---- Memory: load previous conversation from the database ----
+  const { data: storedMessages } = await supabase
+    .from("chat_messages")
+    .select("id, role, content, created_at")
+    .eq("chat_id", documentId)
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(MAX_HISTORY);
 
-  const system = [
-    `You are a helpful and encouraging study assistant.`,
-    `You are helping a student study the document titled "${doc.title}".`,
-    `Answer questions using ONLY the provided study notes.`,
-    `If the answer is not in the notes, say so and then give brief general guidance.`,
-    `Be concise, clear, and use Markdown formatting (headings, bullets, bold) when it improves readability.`,
-    ``,
-    `STUDY NOTES:`,
-    context || `(No extractable text was found in this PDF.)`,
-  ].join("\n");
-
-  const recent = messages.slice(-12).map((m) => ({
+  const history: ChatMessage[] = (storedMessages ?? []).map((m) => ({
+    id: m.id,
     role: m.role,
     content: m.content,
+    createdAt: m.created_at,
   }));
+
+  // ---- Adaptive tutor: blend stored history with the fresh client turn ----
+  const freshTurn = clientMessages.filter((m) => m.role === "user");
+  const lastUser = freshTurn[freshTurn.length - 1]?.content ?? "";
+  const lastAssistant =
+    clientMessages[clientMessages.length - 1]?.role === "assistant"
+      ? clientMessages[clientMessages.length - 1].content
+      : null;
+
+  const profile = await getProfile(supabase, user.id);
+  const persona = buildStudyContext(profile);
+
+  // Log a study activity when a brand-new conversation starts so dashboards
+  // can count AI chat sessions.
+  if (history.length === 0) {
+    await logActivity(supabase, {
+      userId: user.id,
+      documentId,
+      type: "chat",
+      title: doc.title,
+    });
+  }
+
+  // Persist the user's message immediately so the conversation survives reloads.
+  const { data: savedUserMsg } = await supabase
+    .from("chat_messages")
+    .insert({
+      id: crypto.randomUUID(),
+      chat_id: documentId,
+      user_id: user.id,
+      role: "user",
+      content: lastUser,
+    })
+    .select("id, role, content, created_at")
+    .single();
+
+  const system = [
+    `You are a warm, patient college professor and personal AI tutor.`,
+    `You are teaching a student "${doc.title}".`,
+    persona,
+    `Teach like an excellent teacher: break ideas into steps, use analogies and examples, check understanding, and adapt your pace to the student.`,
+    `Answer questions using ONLY the provided study notes.`,
+    `If the student asks to be taught "like a professor", use formal academic language and depth.`,
+    `If the student asks to explain "to a 10-year-old", use simple words, fun analogies, and short sentences.`,
+    `If the student asks you to "keep teaching until I understand", ask short questions to check understanding and re-explain anything they miss.`,
+    `If the answer is not in the notes, say so clearly, then give brief general guidance.`,
+    `Be concise, clear, and use Markdown formatting (headings, bullets, bold) when it improves readability.`,
+    `The student may ask follow-up questions — remember the conversation you have shared with them.`,
+    ``,
+    `STUDY NOTES:`,
+    doc.content,
+  ].join("\n");
+
+  const messages: { role: "user" | "assistant"; content: string }[] = [
+    ...history.map((m) => ({ role: m.role, content: m.content })),
+  ];
+
+  if (
+    history[history.length - 1]?.role !== "user" ||
+    history[history.length - 1]?.content !== lastUser
+  ) {
+    messages.push({ role: "user", content: lastUser });
+  }
+
+  if (lastAssistant) {
+    messages.push({ role: "assistant", content: lastAssistant });
+  }
 
   const upstream = await openRouterStream({
     system,
-    messages: recent,
+    messages: messages.slice(-20),
     temperature: 0.7,
     maxTokens: 2048,
   });
 
-  return new Response(upstream.body, {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const reader = upstream.body?.getReader();
+
+  let full = "";
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      if (!reader) {
+        controller.close();
+        return;
+      }
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          full += decoder.decode(value, { stream: true });
+          controller.enqueue(value);
+        }
+      } finally {
+        decoder.decode();
+        controller.close();
+        // Persist the assistant reply (strip SSE framing).
+        const content = extractSseContent(full);
+        if (content) {
+          await supabase.from("chat_messages").insert({
+            id: crypto.randomUUID(),
+            chat_id: documentId,
+            user_id: user.id,
+            role: "assistant",
+            content,
+          });
+        }
+      }
+    },
+  });
+
+  return new Response(stream, {
     headers: {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
@@ -83,4 +188,24 @@ export async function POST(request: NextRequest) {
       "X-Accel-Buffering": "no",
     },
   });
+}
+
+function extractSseContent(raw: string): string {
+  const parts: string[] = [];
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("data:")) continue;
+    const payload = trimmed.slice(5).trim();
+    if (payload === "[DONE]") continue;
+    try {
+      const json = JSON.parse(payload) as {
+        choices?: { delta?: { content?: string } }[];
+      };
+      const delta = json.choices?.[0]?.delta?.content;
+      if (delta) parts.push(delta);
+    } catch {
+      // ignore partial frames
+    }
+  }
+  return parts.join("");
 }

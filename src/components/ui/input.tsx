@@ -1,31 +1,20 @@
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import { Input as InputPrimitive } from "@base-ui/react/input"
 
-type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
-  label?: string;
-  error?: string;
-};
+import { cn } from "@/lib/utils"
 
-export function Input({ label, error, className, id, ...props }: InputProps) {
+function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (
-    <div className="space-y-1.5">
-      {label && (
-        <label
-          htmlFor={id}
-          className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-        >
-          {label}
-        </label>
+    <InputPrimitive
+      type={type}
+      data-slot="input"
+      className={cn(
+        "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+        className
       )}
-      <input
-        id={id}
-        className={cn(
-          "h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 shadow-sm transition placeholder:text-zinc-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500",
-          error && "border-red-500 focus:border-red-500 focus:ring-red-500/30",
-          className,
-        )}
-        {...props}
-      />
-      {error && <p className="text-xs text-red-500">{error}</p>}
-    </div>
-  );
+      {...props}
+    />
+  )
 }
+
+export { Input }

@@ -1,7 +1,22 @@
 export type ChatMessage = {
+  id?: string;
   role: "user" | "assistant";
   content: string;
+  createdAt?: string;
 };
+
+export type LearningLevel = "beginner" | "intermediate" | "advanced";
+
+export type ProfileRecord = {
+  user_id: string;
+  display_name?: string | null;
+  learning_level: LearningLevel;
+  goal?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TextSource = "pdf" | "ocr" | "scanned";
 
 export type DocumentRecord = {
   id: string;
@@ -12,6 +27,8 @@ export type DocumentRecord = {
   file_size: number;
   page_count: number | null;
   created_at: string;
+  text_source?: TextSource | null;
+  is_ocr_ready?: boolean | null;
 };
 
 export type StudyActivity = {
@@ -35,6 +52,25 @@ export type SummaryResult = {
   chapters: ChapterSummary[];
 };
 
+export type NoteSection =
+  | { kind: "definition"; text: string }
+  | { kind: "remember"; text: string }
+  | { kind: "trick"; text: string }
+  | { kind: "equation"; text: string }
+  | { kind: "examQuestions"; items: string[] }
+  | { kind: "fiveMarkAnswer"; text: string }
+  | { kind: "oneLineRevision"; text: string };
+
+export type StudyNote = {
+  chapter: string;
+  sections: NoteSection[];
+};
+
+export type NotesResult = {
+  overview: string;
+  notes: StudyNote[];
+};
+
 export type Flashcard = {
   front: string;
   back: string;
@@ -44,13 +80,19 @@ export type FlashcardResult = {
   cards: Flashcard[];
 };
 
+export type QuizQuestionType = "mcq" | "truefalse" | "fillblank" | "short";
+
 export type QuizQuestion = {
+  type: QuizQuestionType;
   question: string;
-  options: string[];
-  correctIndex: number;
+  options?: string[];
+  correctIndex?: number;
+  correctAnswer?: string;
   explanation?: string;
 };
 
 export type QuizResult = {
   questions: QuizQuestion[];
 };
+
+export type MindMapNode = { label: string; children?: MindMapNode[] };

@@ -3,11 +3,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient, getUser } from "@/lib/supabase/server";
-import { SummaryView } from "@/components/summary-view";
+import { NotesView } from "@/components/summary-view";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Chapter summaries",
+  title: "AI Notes",
 };
 
 export const dynamic = "force-dynamic";
@@ -40,14 +40,14 @@ export default async function SummariesPage({
         </Link>
         <div>
           <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-            Chapter summaries
+            AI Notes
           </h1>
           <p className="truncate text-sm text-zinc-500 dark:text-zinc-400">
             {doc.title}
           </p>
         </div>
       </div>
-      <SummaryView documentId={documentId} />
+      <NotesView documentId={documentId} />
     </div>
   );
 }

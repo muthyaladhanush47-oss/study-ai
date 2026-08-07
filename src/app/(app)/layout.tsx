@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { Navbar } from "@/components/navbar";
+import { AppShell } from "@/components/shell/app-shell";
 import { getUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -19,16 +19,13 @@ export default async function AppLayout({
   if (!user) redirect("/login");
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar
-        userEmail={user.email ?? "Student"}
-        userInitials={
-          user.email ? user.email.slice(0, 2).toUpperCase() : "SA"
-        }
-      />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
-        {children}
-      </main>
-    </div>
+    <AppShell
+      userEmail={user.email ?? "Student"}
+      userInitials={
+        user.email ? user.email.slice(0, 2).toUpperCase() : "SA"
+      }
+    >
+      {children}
+    </AppShell>
   );
 }

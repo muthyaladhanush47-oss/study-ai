@@ -8,6 +8,7 @@ const PROTECTED_PREFIXES = [
   "/summaries",
   "/flashcards",
   "/quiz",
+  "/mindmap",
 ];
 
 function isProtected(pathname: string) {
@@ -16,7 +17,7 @@ function isProtected(pathname: string) {
   );
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

@@ -1,17 +1,72 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, ChevronDown, FileText, Loader2, Sparkles } from "lucide-react";
-import type { ChapterSummary, SummaryResult } from "@/types";
+import {
+  Flame,
+  GraduationCap,
+  Lightbulb,
+  NotepadText,
+  Pin,
+  Star,
+  Pencil,
+  Sigma,
+  ListChecks,
+  Sparkles,
+  RefreshCw,
+} from "lucide-react";
+import type { NoteSection, NotesResult } from "@/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
-export function SummaryView({ documentId }: { documentId: string }) {
-  const [summary, setSummary] = useState<SummaryResult | null>(null);
+const sectionMeta: Record<
+  NoteSection["kind"],
+  { label: string; emoji: string; icon: typeof Pencil; accent: string }
+> = {
+  definition: { label: "Definition", emoji: "✍", icon: Pencil, accent: "text-sky-600 dark:text-sky-400" },
+  remember: { label: "Remember", emoji: "⭐", icon: Star, accent: "text-amber-600 dark:text-amber-400" },
+  trick: { label: "Trick", emoji: "💡", icon: Lightbulb, accent: "text-violet-600 dark:text-violet-400" },
+  equation: { label: "Equation", emoji: "🌳", icon: Sigma, accent: "text-emerald-600 dark:text-emerald-400" },
+  examQuestions: { label: "Exam questions", emoji: "📝", icon: ListChecks, accent: "text-rose-600 dark:text-rose-400" },
+  fiveMarkAnswer: { label: "5 mark answer", emoji: "🔥", icon: Flame, accent: "text-orange-600 dark:text-orange-400" },
+  oneLineRevision: { label: "One line revision", emoji: "📌", icon: Pin, accent: "text-indigo-600 dark:text-indigo-400" },
+};
+
+function SectionBlock({ section }: { section: NoteSection }) {
+  const meta = sectionMeta[section.kind];
+  const Icon = meta.icon;
+  return (
+    <div className="notebook-page mb-4 p-4 sm:p-5">
+      <h4 className={cn("mb-2 flex items-center gap-2 font-hand text-xl font-bold sm:text-2xl", meta.accent)}>
+        <span className="text-2xl sm:text-3xl">{meta.emoji}</span>
+        <Icon className="h-5 w-5" />
+        {meta.label}
+      </h4>
+      {section.kind === "examQuestions" ? (
+        <ol className="ml-6 list-decimal space-y-1.5 font-kalam text-lg leading-relaxed text-foreground/90">
+          {section.items.map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
+        </ol>
+      ) : section.kind === "equation" ? (
+        <div className="mt-1 overflow-x-auto rounded-xl border border-emerald-500/30 bg-background/60 px-4 py-3">
+          <pre className="font-kalam text-lg font-bold leading-loose whitespace-pre-wrap text-emerald-700 dark:text-emerald-300">
+            {section.text}
+          </pre>
+        </div>
+      ) : (
+        <p className="font-kalam text-lg leading-relaxed text-foreground/90 sm:text-xl">
+          {section.text}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function NotesView({ documentId }: { documentId: string }) {
+  const [notes, setNotes] = useState<NotesResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
 
   async function generate() {
     setLoading(true);
@@ -23,8 +78,8 @@ export function SummaryView({ documentId }: { documentId: string }) {
         body: JSON.stringify({ documentId }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? "Failed to generate summary.");
-      setSummary(body as SummaryResult);
+      if (!res.ok) throw new Error(body?.error ?? "Failed to generate notes.");
+      setNotes(body as NotesResult);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -32,98 +87,83 @@ export function SummaryView({ documentId }: { documentId: string }) {
     }
   }
 
-  if (summary) {
+  if (notes) {
     return (
-      <div className="space-y-5">
-        <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <BookOpen className="h-5 w-5 text-brand-600 dark:text-brand-400" />
-            {summary.chapters.length}{" "}
-            {summary.chapters.length === 1 ? "section" : "sections"} summarized
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 font-heading text-lg font-semibold">
+            <NotepadText className="h-5 w-5 text-primary" />
+            {notes.notes.length}{" "}
+            {notes.notes.length === 1 ? "chapter" : "chapters"} of handwritten notes
           </h2>
-          <Button variant="outline" size="sm" onClick={generate} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={generate} loading={loading}>
+            <RefreshCw className="h-3.5 w-3.5" />
             Regenerate
           </Button>
         </div>
 
-        <Card className="p-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
-            Overview
-          </p>
-          <p className="mt-2 leading-relaxed text-zinc-700 dark:text-zinc-300">
-            {summary.overview}
-          </p>
+        {/* Overview card — handwritten summary of everything */}
+        <Card className="notebook-page shadow-sm">
+          <CardContent className="p-5 sm:p-6">
+            <p className="mb-2 flex items-center gap-2 font-hand text-2xl font-bold text-primary">
+              <GraduationCap className="h-6 w-6" />
+              The whole picture
+            </p>
+            <p className="font-kalam text-xl leading-relaxed text-foreground/90">
+              {notes.overview}
+            </p>
+          </CardContent>
         </Card>
 
-        <div className="space-y-4">
-          {summary.chapters.map((chapter, i) => (
-            <Card key={i} className="overflow-hidden">
-              <button
-                type="button"
-                onClick={() =>
-                  setExpanded((prev) => ({ ...prev, [i]: !prev[i] }))
-                }
-                className="flex w-full items-center justify-between gap-4 p-5 text-left transition hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-sm font-bold text-brand-600 dark:bg-brand-950 dark:text-brand-400">
-                    {i + 1}
-                  </span>
-                  <h3 className="font-semibold">{chapter.chapter}</h3>
-                </div>
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 shrink-0 text-zinc-400 transition",
-                    expanded[i] && "rotate-180",
-                  )}
-                />
-              </button>
-              {expanded[i] && (
-                <div className="border-t border-zinc-100 px-5 py-4 dark:border-zinc-800">
-                  <p className="leading-relaxed text-zinc-700 dark:text-zinc-300">
-                    {chapter.summary}
-                  </p>
-                  {chapter.keyPoints.length > 0 && (
-                    <ul className="mt-3 space-y-1.5">
-                      {chapter.keyPoints.map((point, j) => (
-                        <li
-                          key={j}
-                          className="flex items-start gap-2 text-sm text-zinc-600 dark:text-zinc-400"
-                        >
-                          <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-500 dark:text-brand-400" />
-                          {point}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-            </Card>
-          ))}
+        {notes.notes.map((note, i) => (
+          <section key={i} aria-label={note.chapter}>
+            {/* Chapter header */}
+            <div className="mb-4 mt-8 flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-fuchsia-600 text-lg font-bold text-white shadow-md">
+                {i + 1}
+              </span>
+              <h3 className="font-hand text-2xl font-bold tracking-tight sm:text-3xl">
+                📒 {note.chapter}
+              </h3>
+            </div>
+            <div className="h-px flex-1 bg-gradient-to-r from-primary/40 via-border to-transparent" />
+            <div className="mt-4">
+              {note.sections.map((section, j) => (
+                <SectionBlock key={j} section={section} />
+              ))}
+            </div>
+          </section>
+        ))}
+
+        <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+          <Sparkles className="mx-auto mb-1 h-4 w-4 text-primary" />
+          Rewrite these notes in your own words, then test yourself with the
+          flashcard and quiz tools.
         </div>
       </div>
     );
   }
 
   return (
-    <Card className="flex flex-col items-center justify-center gap-4 p-10 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-violet-600 text-white shadow-lg">
-        <FileText className="h-7 w-7" />
+    <Card className="flex flex-col items-center justify-center gap-4 p-10 text-center shadow-sm">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-fuchsia-600 text-white shadow-lg">
+        <NotepadText className="h-7 w-7" />
       </div>
       <div>
-        <h2 className="text-lg font-semibold">Generate chapter summaries</h2>
-        <p className="mx-auto mt-1 max-w-md text-sm text-zinc-500 dark:text-zinc-400">
-          StudyAI will read your notes and produce an overview plus a breakdown
-          of each chapter or section with key points.
+        <h2 className="text-lg font-semibold">Generate handwritten-style notes</h2>
+        <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+          StudyAI turns your PDF into clean, notebook-style notes with
+          definitions, memory tricks, equations, exam questions and a 5-mark
+          answer — like a friend who took perfect notes for you.
         </p>
       </div>
       {error && (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-300">
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       )}
       <Button onClick={generate} loading={loading}>
-        {loading ? "Summarizing…" : "Generate summary"}
+        {loading ? "Writing notes…" : "Generate AI notes"}
       </Button>
     </Card>
   );

@@ -1,11 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { parsePdf, MAX_STORED_CHARS } from "@/lib/pdf";
+import { parsePdf, isLikelyScanned, MAX_STORED_CHARS } from "@/lib/pdf";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const MAX_SIZE = 20 * 1024 * 1024;
+
+const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+
+const IMAGE_CONTENT_TYPES: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+};
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -24,9 +33,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  if (!file.name.toLowerCase().endsWith(".pdf")) {
+  const ext = "." + file.name.toLowerCase().split(".").pop()!;
+  const isImage = IMAGE_EXTENSIONS.has(ext);
+  const isPdf = ext === ".pdf";
+
+  if (!isPdf && !isImage) {
     return NextResponse.json(
-      { error: "Only PDF files are supported" },
+      { error: "Only PDFs and images (JPG, PNG, WebP) are supported" },
       { status: 400 },
     );
   }
@@ -38,31 +51,39 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let text: string;
-  let pageCount: number;
-  try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const parsed = await parsePdf(buffer);
-    text = parsed.text.slice(0, MAX_STORED_CHARS);
-    pageCount = parsed.pages;
-  } catch {
-    return NextResponse.json(
-      { error: "Could not read this PDF. It may be corrupted or scanned." },
-      { status: 422 },
-    );
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  let text = "";
+  let pageCount = 0;
+  let needsOcr = true;
+  let textSource = "scanned";
+
+  if (isPdf) {
+    try {
+      const parsed = await parsePdf(buffer);
+      text = parsed.text.slice(0, MAX_STORED_CHARS);
+      pageCount = parsed.pages;
+    } catch {
+      return NextResponse.json(
+        { error: "Could not read this PDF. It may be corrupted." },
+        { status: 422 },
+      );
+    }
+    needsOcr = isLikelyScanned(text, pageCount);
+    textSource = needsOcr ? "scanned" : "pdf";
+  } else {
+    pageCount = 1;
   }
 
   const title =
     (formData.get("title") as string)?.trim() ||
-    file.name.replace(/\.pdf$/i, "");
-  const filePath = `${user.id}/${crypto.randomUUID()}.pdf`;
-
-  const buffer = Buffer.from(await file.arrayBuffer());
+    file.name.replace(/\.(pdf|jpe?g|png|webp)$/i, "");
+  const filePath = `${user.id}/${crypto.randomUUID()}${ext}`;
 
   const { error: uploadError } = await supabase.storage
     .from("documents")
     .upload(filePath, buffer, {
-      contentType: "application/pdf",
+      contentType: isImage ? IMAGE_CONTENT_TYPES[ext] : "application/pdf",
       upsert: false,
     });
 
@@ -82,28 +103,23 @@ export async function POST(request: NextRequest) {
       file_path: filePath,
       file_size: file.size,
       page_count: pageCount,
+      text_source: textSource,
+      is_ocr_ready: !needsOcr,
     })
     .select()
     .single();
 
   if (docError || !document) {
-  console.error("DOCUMENT INSERT ERROR");
-  console.error(docError);
-
-  await supabase.storage.from("documents").remove([filePath]);
-
-  return NextResponse.json(
-    {
-      error: docError?.message,
-      details: docError,
-    },
-    { status: 500 }
-  );
-}
+    await supabase.storage.from("documents").remove([filePath]);
+    return NextResponse.json(
+      { error: docError?.message ?? "Failed to create document." },
+      { status: 500 },
+    );
+  }
 
   const { error: contentError } = await supabase
     .from("document_content")
-    .insert({ document_id: document.id, content: text });
+    .insert({ document_id: document.id, content: needsOcr ? "" : text });
 
   if (contentError) {
     await supabase.storage.from("documents").remove([filePath]);
@@ -114,5 +130,5 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ document }, { status: 201 });
+  return NextResponse.json({ document, needsOcr }, { status: 201 });
 }

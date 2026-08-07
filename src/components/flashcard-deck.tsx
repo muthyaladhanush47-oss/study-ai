@@ -5,7 +5,6 @@ import {
   Brain,
   ChevronLeft,
   ChevronRight,
-  Loader2,
   RotateCcw,
   Shuffle,
 } from "lucide-react";
@@ -66,7 +65,7 @@ export function FlashcardDeck({ documentId }: { documentId: string }) {
     return (
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             Card {index + 1} of {cards.length}
           </p>
           <div className="flex flex-wrap gap-2">
@@ -82,7 +81,7 @@ export function FlashcardDeck({ documentId }: { documentId: string }) {
               <Shuffle className="h-4 w-4" />
               Shuffle
             </Button>
-            <Button variant="outline" size="sm" onClick={generate} disabled={loading}>
+            <Button variant="outline" size="sm" onClick={generate} loading={loading}>
               <RotateCcw className="h-4 w-4" />
               Regenerate
             </Button>
@@ -102,25 +101,25 @@ export function FlashcardDeck({ documentId }: { documentId: string }) {
                 flipped && "rotate-y-180",
               )}
             >
-              <div className="backface-hidden absolute inset-0 flex flex-col items-center justify-center rounded-2xl border-2 border-brand-200 bg-gradient-to-br from-brand-50 to-violet-50 p-8 text-center dark:border-brand-800 dark:from-brand-950 dark:to-violet-950">
-                <p className="text-xs font-semibold uppercase tracking-widest text-brand-500 dark:text-brand-400">
+              <div className="backface-hidden absolute inset-0 flex flex-col items-center justify-center rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-fuchsia-500/10 p-8 text-center">
+                <p className="text-xs font-semibold uppercase tracking-widest text-primary">
                   Question
                 </p>
                 <p className="mt-3 text-lg font-medium leading-relaxed">
                   {card.front}
                 </p>
-                <p className="mt-6 text-xs text-zinc-400 dark:text-zinc-500">
+                <p className="mt-6 text-xs text-muted-foreground">
                   Click to flip
                 </p>
               </div>
-              <div className="backface-hidden rotate-y-180 absolute inset-0 flex flex-col items-center justify-center rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 p-8 text-center dark:border-emerald-800 dark:from-emerald-950 dark:to-teal-950">
+              <div className="backface-hidden rotate-y-180 absolute inset-0 flex flex-col items-center justify-center rounded-2xl border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 p-8 text-center">
                 <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
                   Answer
                 </p>
                 <p className="mt-3 text-lg font-medium leading-relaxed">
                   {card.back}
                 </p>
-                <p className="mt-6 text-xs text-zinc-400 dark:text-zinc-500">
+                <p className="mt-6 text-xs text-muted-foreground">
                   Click to flip back
                 </p>
               </div>
@@ -133,12 +132,7 @@ export function FlashcardDeck({ documentId }: { documentId: string }) {
             <ChevronLeft className="h-4 w-4" />
             Previous
           </Button>
-          <Button
-            variant="primary"
-            onClick={goNext}
-            disabled={cards.length === 1}
-            className="min-w-28"
-          >
+          <Button onClick={goNext} disabled={cards.length === 1} className="min-w-28">
             {index === cards.length - 1 ? "Start over" : "Next"}
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -148,23 +142,19 @@ export function FlashcardDeck({ documentId }: { documentId: string }) {
   }
 
   return (
-    <Card className="flex flex-col items-center justify-center gap-4 p-10 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-violet-600 text-white shadow-lg">
-        {loading ? (
-          <Loader2 className="h-7 w-7 animate-spin" />
-        ) : (
-          <Brain className="h-7 w-7" />
-        )}
+    <Card className="flex flex-col items-center justify-center gap-4 p-10 text-center shadow-sm">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-fuchsia-600 text-white shadow-lg">
+        <Brain className="h-7 w-7" />
       </div>
       <div>
         <h2 className="text-lg font-semibold">Generate flashcards</h2>
-        <p className="mx-auto mt-1 max-w-md text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
           Get 10 ready-to-review cards covering the key definitions and concepts
           from your notes. Flip each card to test yourself.
         </p>
       </div>
       {error && (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-300">
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       )}
