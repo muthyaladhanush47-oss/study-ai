@@ -1,6 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { renderPdfPages } from "@/lib/ocr";
+import {
+  compressPageImage,
+  destroyPdf,
+  openPdf,
+  pdfPageCount,
+  renderPdfPage,
+  type PdfHandle,
+} from "@/lib/ocr";
 import { transcribePage } from "@/lib/ai/vision";
 import { MAX_STORED_CHARS } from "@/lib/pdf";
 import { logOperation, makeRequestId } from "@/lib/logger";
@@ -8,7 +15,11 @@ import { logOperation, makeRequestId } from "@/lib/logger";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-const MAX_PAGES = 40;
+// High safety valve. Per-page processing keeps memory bounded regardless of
+// page count; this only guards against pathologically huge documents.
+const MAX_PAGES = 500;
+
+const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 
 const encoder = new TextEncoder();
 
@@ -16,13 +27,41 @@ function sse(event: string, data: unknown) {
   return encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
+/** Extracts the set of fully-transcribed pages from stored content. */
+function completedPagesFromContent(content: string): Set<number> {
+  const done = new Set<number>();
+  const regex = /^=== PAGE\s+(\d+)\s*===/gm;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(content)) !== null) {
+    done.add(Number(match[1]));
+  }
+  return done;
+}
+
+async function markFailed(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  documentId: string,
+  message: string,
+) {
+  try {
+    await supabase
+      .from("documents")
+      .update({ processing_status: "failed", processing_error: message })
+      .eq("id", documentId);
+  } catch {
+    // Best-effort: never let a status write mask the original error.
+  }
+}
+
 /**
  * Transcribes a scanned/handwritten document page by page and streams
- * progress over Server-Sent Events so the UI can show
- * "Transcribing page 2 of 12...".
+ * progress over Server-Sent Events.
  *
- * The transcription for each page is appended to document_content as it
- * finishes, so partial progress survives a timeout or a network drop.
+ * Memory-bounded: pages are rendered ONE at a time (render → compress →
+ * vision → save → release) so a 42 MB scanned PDF never has all of its
+ * images in RAM. Every successfully transcribed page is written to
+ * document_content immediately, so a timeout or failure never loses work
+ * and Retry resumes from the first un-transcribed page.
  */
 export async function POST(request: NextRequest) {
   const requestId = makeRequestId();
@@ -37,14 +76,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json()) as { documentId?: string };
-  const documentId = body.documentId;
-
-  if (!documentId) {
-    return NextResponse.json(
-      { error: "documentId is required" },
-      { status: 400 },
-    );
+  let documentId: string;
+  try {
+    const body = (await request.json()) as { documentId?: unknown };
+    if (typeof body.documentId !== "string" || !body.documentId.trim()) {
+      return NextResponse.json(
+        { error: "documentId is required" },
+        { status: 400 },
+      );
+    }
+    documentId = body.documentId;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
   const { data: document } = await supabase
@@ -80,7 +123,8 @@ export async function POST(request: NextRequest) {
     operation: "ocr.start",
   });
 
-  // Mark as processing and clear any stale partial content from a failed run.
+  // Mark as processing; stale partial content from a previous run is kept so
+  // Retry resumes from the first un-transcribed page instead of re-doing work.
   await supabase
     .from("documents")
     .update({
@@ -89,142 +133,163 @@ export async function POST(request: NextRequest) {
     })
     .eq("id", documentId);
 
-  await supabase
+  // Ensure a content row exists so per-page updates always land.
+  const { data: existingContent } = await supabase
     .from("document_content")
-    .upsert({ document_id: documentId, content: "" }, { onConflict: "document_id" });
+    .select("content")
+    .eq("document_id", documentId)
+    .maybeSingle();
 
+  if (!existingContent) {
+    const { error: insertError } = await supabase
+      .from("document_content")
+      .insert({ document_id: documentId, content: "" });
+    if (insertError) {
+      const message = `OCR failed while preparing storage: ${insertError.message}`;
+      await markFailed(supabase, documentId, message);
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
+  // Download the file once (function → Supabase Storage, never back to the
+  // browser). Releasing the original PDF bytes here keeps the whole OCR run
+  // far below Vercel's function memory limit.
   const { data: file, error: downloadError } = await supabase.storage
     .from("documents")
     .download(document.file_path);
 
   if (downloadError || !file) {
-    const message = `Could not download the file: ${downloadError?.message ?? "unknown"}`;
-    await supabase
-      .from("documents")
-      .update({ processing_status: "failed", processing_error: message })
-      .eq("id", documentId);
+    const message = `OCR failed while downloading the file from Storage: ${downloadError?.message ?? "unknown"}`;
+    await markFailed(supabase, documentId, message);
     logOperation({
       requestId,
       userId: user.id,
       documentId,
       operation: "ocr.download",
+      stage: "storage_download",
       error: message,
     });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  const ext = "." + document.file_path.toLowerCase().split(".").pop();
-  const isImage =
-    ext === ".jpg" || ext === ".jpeg" || ext === ".png" || ext === ".webp";
-
-  let pages: Buffer[];
+  let buffer: Buffer;
   try {
-    if (isImage) {
-      pages = [buffer];
-    } else {
-      pages = await renderPdfPages(buffer, {
-        scale: 2,
-        maxPages: MAX_PAGES,
-      });
-    }
+    buffer = Buffer.from(await file.arrayBuffer());
   } catch (err) {
-    const message =
-      err instanceof Error
-        ? `Could not render the PDF pages: ${err.message}`
-        : "Could not render the PDF pages.";
-    await supabase
-      .from("documents")
-      .update({ processing_status: "failed", processing_error: message })
-      .eq("id", documentId);
-    logOperation({
-      requestId,
-      userId: user.id,
-      documentId,
-      operation: "ocr.render",
-      error: message,
-    });
-    return NextResponse.json({ error: message }, { status: 422 });
+    const message = `OCR failed while reading the downloaded file: ${err instanceof Error ? err.message : "unknown"}`;
+    await markFailed(supabase, documentId, message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  if (pages.length === 0) {
-    const message = "Could not render any pages from this file.";
-    await supabase
-      .from("documents")
-      .update({ processing_status: "failed", processing_error: message })
-      .eq("id", documentId);
-    return NextResponse.json({ error: message }, { status: 422 });
-  }
+  logOperation({
+    requestId,
+    userId: user.id,
+    documentId,
+    operation: "ocr.download",
+    stage: "storage_download",
+    fileSize: buffer.length,
+  });
 
-  const mime = isImage
-    ? ext === ".jpg" || ext === ".jpeg"
-      ? "image/jpeg"
-      : ext === ".webp"
-        ? "image/webp"
-        : "image/png"
-    : "image/png";
+  const ext = "." + (document.file_path.toLowerCase().split(".").pop() ?? "");
+  const isImage = IMAGE_EXTENSIONS.has(ext);
 
-  let stream: ReadableStream<Uint8Array>;
-
-  stream = new ReadableStream({
+  const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      let handle: PdfHandle | null = null;
       try {
         controller.enqueue(
-          sse("status", { phase: "reading", message: "Reading your handwritten notes…" }),
+          sse("status", {
+            phase: "reading",
+            message: "Reading your handwritten notes…",
+          }),
         );
 
-        let full = "";
-        for (let i = 0; i < pages.length; i++) {
-          const pageNumber = i + 1;
+        const existing = existingContent?.content ?? "";
+        const completed = completedPagesFromContent(existing);
+        let full = existing.slice(0, MAX_STORED_CHARS);
+
+        let totalPages: number;
+        if (isImage) {
+          totalPages = 1;
+        } else {
+          handle = await openPdf(buffer, { scale: 3 });
+          totalPages = pdfPageCount(handle);
+          logOperation({
+            requestId,
+            userId: user.id,
+            documentId,
+            operation: "ocr.render",
+            stage: "open",
+            totalPages,
+            fileSize: buffer.length,
+          });
+          if (totalPages > MAX_PAGES) {
+            throw new Error(
+              `This PDF has ${totalPages} pages; the maximum supported is ${MAX_PAGES}.`,
+            );
+          }
+          if (totalPages === 0) {
+            throw new Error(
+              "OCR failed: the PDF contains no renderable pages.",
+            );
+          }
+        }
+
+        for (let i = 1; i <= totalPages; i++) {
           controller.enqueue(
             sse("progress", {
-              page: pageNumber,
-              total: pages.length,
-              message: `Transcribing page ${pageNumber} of ${pages.length}…`,
+              page: i,
+              total: totalPages,
+              message: `Transcribing page ${i} of ${totalPages}…`,
             }),
           );
 
-          let text: string;
-          try {
-            text = await transcribePage({
-              page: pageNumber,
-              image: pages[i],
-              mime,
-            });
-          } catch (err) {
-            const message =
-              err instanceof Error
-                ? `OCR failed: unable to process page ${pageNumber}: ${err.message}`
-                : `OCR failed: unable to process page ${pageNumber}.`;
-            await supabase
-              .from("documents")
-              .update({
-                processing_status: "failed",
-                processing_error: message,
-              })
-              .eq("id", documentId);
+          if (completed.has(i)) {
             logOperation({
               requestId,
               userId: user.id,
               documentId,
-              operation: "ocr.transcribe_page",
-              error: message,
+              operation: "ocr.page_skip",
+              stage: "resume",
+              page: i,
+              totalPages,
             });
-            controller.enqueue(sse("error", { message }));
-            return;
+            continue;
           }
 
-          // Persist incrementally so partial progress is never lost.
+          // One page at a time: render → compress → vision → save → release.
+          let text: string;
+          try {
+            const raw = isImage ? buffer : await renderPdfPage(handle!, i);
+            const { data: image, mime } = await compressPageImage(raw);
+            text = await transcribePage({
+              page: i,
+              image,
+              mime,
+            });
+          } catch (err) {
+            const detail =
+              err instanceof Error ? err.message : "unknown error";
+            throw new Error(`OCR failed on page ${i}: ${detail}`);
+          }
+
           if (text.trim()) {
-            full = `${full}\n\n=== PAGE ${pageNumber} ===\n${text.trim()}`;
-            await supabase
+            full = `${full}\n\n=== PAGE ${i} ===\n${text.trim()}`.slice(
+              0,
+              MAX_STORED_CHARS,
+            );
+            const { error: saveError } = await supabase
               .from("document_content")
               .update({
-                content: full.slice(0, MAX_STORED_CHARS),
+                content: full,
                 updated_at: new Date().toISOString(),
               })
               .eq("document_id", documentId);
+            if (saveError) {
+              throw new Error(
+                `OCR failed while saving page ${i}: ${saveError.message}`,
+              );
+            }
           }
 
           logOperation({
@@ -232,11 +297,13 @@ export async function POST(request: NextRequest) {
             userId: user.id,
             documentId,
             operation: "ocr.page_done",
+            stage: "transcribe",
+            page: i,
+            totalPages,
             durationMs: Date.now() - started,
           });
         }
 
-        const finalText = full.slice(0, MAX_STORED_CHARS);
         const { error: updateError } = await supabase
           .from("documents")
           .update({
@@ -244,27 +311,20 @@ export async function POST(request: NextRequest) {
             is_ocr_ready: true,
             processing_status: "ready",
             processing_error: null,
-            page_count: pages.length,
+            page_count: totalPages,
           })
           .eq("id", documentId);
 
         if (updateError) {
-          const message = `OCR finished but could not save the result: ${updateError.message}`;
-          logOperation({
-            requestId,
-            userId: user.id,
-            documentId,
-            operation: "ocr.finalize",
-            error: message,
-          });
-          controller.enqueue(sse("error", { message }));
-          return;
+          throw new Error(
+            `OCR finished but could not save the result: ${updateError.message}`,
+          );
         }
 
         controller.enqueue(
           sse("done", {
-            pageCount: pages.length,
-            textLength: finalText.length,
+            pageCount: totalPages,
+            textLength: full.length,
           }),
         );
         logOperation({
@@ -272,6 +332,8 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           documentId,
           operation: "ocr.complete",
+          stage: "complete",
+          totalPages,
           durationMs: Date.now() - started,
         });
       } catch (err) {
@@ -279,19 +341,18 @@ export async function POST(request: NextRequest) {
           err instanceof Error
             ? `OCR failed: ${err.message}`
             : "OCR failed unexpectedly.";
-        await supabase
-          .from("documents")
-          .update({ processing_status: "failed", processing_error: message })
-          .eq("id", documentId);
+        await markFailed(supabase, documentId, message);
         logOperation({
           requestId,
           userId: user.id,
           documentId,
           operation: "ocr.error",
           error: message,
+          durationMs: Date.now() - started,
         });
         controller.enqueue(sse("error", { message }));
       } finally {
+        if (handle) await destroyPdf(handle);
         controller.close();
       }
     },

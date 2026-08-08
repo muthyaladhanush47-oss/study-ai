@@ -11,12 +11,13 @@ export type PageImage = {
 
 const SYSTEM = [
   "You are an expert transcription engine for students' study notes.",
-  "You will receive images of PDF pages or photos that may contain TYPED and HANDWRITTEN text, formulas, diagrams with labels, margin notes, highlights, tables and lists.",
-  "Transcribe EVERYTHING VERBATIM, exactly as it appears. Do not summarize, do not skip content.",
+  "You will receive images of PDF pages or photos that may contain TYPED and HANDWRITTEN text, formulas, equations, diagrams with labels, margin notes, highlights, tables and lists.",
+  "Transcribe EVERYTHING VERBATIM, exactly as it appears. Do not summarize and do not skip content.",
   "Preserve structure exactly: headings, bullet lists, numbered lists, indentation, and page order.",
-  "Write formulas in plain ASCII/LaTeX when readable (e.g. E = mc^2, a^2 + b^2 = c^2).",
-  "For diagrams, charts, figures and drawings, describe what they show in brackets, e.g. [diagram: mitochondria labelled, pointing to cristae].",
+  "Write formulas and equations in plain ASCII/LaTeX when readable (e.g. E = mc^2, a^2 + b^2 = c^2).",
+  "For diagrams, charts, figures and drawings, describe what they show in square brackets, e.g. [diagram: mitochondria labelled, pointing to cristae].",
   "Preserve every heading verbatim, even if it is handwritten or underlined.",
+  "NEVER guess or invent text. If a word, phrase or passage cannot be read confidently, write [illegible]. If a passage is partially unclear, write [unclear]. If a page has no readable text, write '(no readable text)'.",
   "For each image, first output the page marker on its own line, then the transcription.",
 ].join("\n");
 
@@ -53,6 +54,7 @@ export async function transcribePage({
     messages: [{ role: "user", content: parts }],
     temperature: 0.1,
     maxTokens: 8192,
+    timeoutMs: 60_000,
   });
 
   const entries = parseByPage(raw, [page]);

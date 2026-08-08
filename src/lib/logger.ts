@@ -15,12 +15,21 @@ type LogFields = {
 
 function sanitize(fields: LogFields) {
   const safe: Record<string, unknown> = { operation: fields.operation };
+  // Only whitelisted keys are ever logged — never file contents, transcripts,
+  // base64 images, keys, tokens or cookies.
   for (const key of [
     "requestId",
     "userId",
     "documentId",
     "sourceId",
     "durationMs",
+    "stage",
+    "page",
+    "totalPages",
+    "fileSize",
+    "mime",
+    "model",
+    "status",
   ] as const) {
     if (fields[key] !== undefined) safe[key] = fields[key];
   }

@@ -21,22 +21,37 @@ export type OpenRouterOptions = {
   maxTokens?: number;
   json?: boolean;
   model?: string;
+  timeoutMs?: number;
 };
 
 async function requestOpenRouter(
   body: Record<string, unknown>,
-  signal?: AbortSignal,
+  timeoutMs = 120_000,
 ) {
-  const res = await fetch(OPENROUTER_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      "X-Title": "StudyAI",
-    },
-    body: JSON.stringify(body),
-    signal,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "X-Title": "StudyAI",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (controller.signal.aborted) {
+      throw new Error(
+        `OpenRouter request timed out after ${timeoutMs} ms. Please try again.`,
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     let detail = "";
@@ -67,18 +82,22 @@ export async function openRouterChat(
     maxTokens = 8192,
     json = false,
     model,
+    timeoutMs = 120_000,
   } = options;
 
-  const res = await requestOpenRouter({
-    model: resolveModel(model),
-    messages: [
-      ...(system ? [{ role: "system" as const, content: system }] : []),
-      ...messages,
-    ],
-    temperature,
-    max_tokens: maxTokens,
-    ...(json ? { response_format: { type: "json_object" } } : {}),
-  });
+  const res = await requestOpenRouter(
+    {
+      model: resolveModel(model),
+      messages: [
+        ...(system ? [{ role: "system" as const, content: system }] : []),
+        ...messages,
+      ],
+      temperature,
+      max_tokens: maxTokens,
+      ...(json ? { response_format: { type: "json_object" } } : {}),
+    },
+    timeoutMs,
+  );
 
   const data = (await res.json()) as {
     choices?: { message?: { content?: string | OpenRouterContentPart[] } }[];

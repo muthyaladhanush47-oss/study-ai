@@ -84,8 +84,11 @@ export function OcrRunner({
 
       if (!res.ok) {
         const body = await res.json().catch(() => null);
+        if (body?.error) {
+          throw new Error(String(body.error));
+        }
         throw new Error(
-          body?.error ?? `OCR failed (${res.status}). Please try again.`,
+          `OCR failed (HTTP ${res.status}). The server returned no error details — pages already transcribed were saved, so try again to resume.`,
         );
       }
 
