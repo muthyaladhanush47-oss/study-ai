@@ -1,4 +1,4 @@
-import { geminiGenerateText } from "@/lib/gemini";
+import { nvidiaChat } from "@/lib/nvidia";
 import { extractJson } from "@/lib/ai/extract";
 import { logOperation } from "@/lib/logger";
 import type { NotesResult, NoteSection, StudyNote } from "@/types";
@@ -173,7 +173,7 @@ async function callChunkSummary(
   }:\n\n${chunk.text}`;
 
   const attempt = async (): Promise<ChunkSummary> => {
-    const raw = await geminiGenerateText({
+    const raw = await nvidiaChat({
       system: CHUNK_SYSTEM,
       messages: [{ role: "user", content }],
       temperature: 0.3,
@@ -247,7 +247,7 @@ export async function synthesizeNotes(
   const payload = JSON.stringify(input);
   const safePayload = payload.length > 120_000 ? payload.slice(0, 120_000) : payload;
 
-  const raw = await geminiGenerateText({
+  const raw = await nvidiaChat({
     system: SYNTHESIS_SYSTEM,
     messages: [{ role: "user", content: safePayload }],
     temperature: 0.4,
@@ -258,7 +258,7 @@ export async function synthesizeNotes(
   const parsed = extractJson<unknown>(raw);
   const result = sanitizeNotesResult(parsed);
   if (!result) {
-    throw new Error("Gemini returned an invalid notes response.");
+    throw new Error("NVIDIA returned an invalid notes response.");
   }
   return result;
 }

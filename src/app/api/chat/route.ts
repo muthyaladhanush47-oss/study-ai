@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { geminiGenerateTextStream } from "@/lib/gemini";
+import { nvidiaStream, type NvidiaMessage } from "@/lib/nvidia";
 import { truncate } from "@/lib/pdf";
 import { getOwnedDocument, getProfile, buildStudyContext, logActivity } from "@/lib/ai/document";
 import type { ChatMessage } from "@/types";
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     doc.content,
   ].join("\n");
 
-  const messages: { role: "user" | "assistant"; content: string }[] = [
+  const messages: NvidiaMessage[] = [
     ...history.map((m) => ({ role: m.role, content: m.content })),
   ];
 
@@ -136,42 +136,48 @@ export async function POST(request: NextRequest) {
     messages.push({ role: "assistant", content: lastAssistant });
   }
 
-  const textStream = await geminiGenerateTextStream({
+  // NVIDIA streams OpenAI-style SSE frames (`data: {"choices":[...]}`) that the
+  // chat UI already parses, so the upstream response can be passed through
+  // byte-for-byte. We still read it so the assistant reply can be persisted.
+  const upstream = await nvidiaStream({
     system,
-    messages: messages.slice(-20).map((m) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      content: m.content,
-    })),
+    messages: messages.slice(-20),
     temperature: 0.7,
     maxTokens: 2048,
   });
 
-  const encoder = new TextEncoder();
+  const upstreamBody = upstream.body;
+  if (!upstreamBody) {
+    return NextResponse.json(
+      { error: "NVIDIA returned an empty response." },
+      { status: 502 },
+    );
+  }
 
+  const decoder = new TextDecoder();
   let full = "";
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        for await (const chunk of textStream) {
-          full += chunk;
-          // Keep the OpenAI-style wire format the chat UI already parses.
-          const frame = `data: ${JSON.stringify({
-            choices: [{ delta: { content: chunk } }],
-          })}\n\n`;
-          controller.enqueue(encoder.encode(frame));
+        const reader = upstreamBody.getReader();
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          full += decoder.decode(value, { stream: true });
+          controller.enqueue(value);
         }
-        controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
       } finally {
         controller.close();
         // Persist the assistant reply.
-        if (full.trim()) {
+        const assistantText = extractSseContent(full);
+        if (assistantText.trim()) {
           await supabase.from("chat_messages").insert({
             id: crypto.randomUUID(),
             chat_id: documentId,
             user_id: user.id,
             role: "assistant",
-            content: full,
+            content: assistantText,
           });
         }
       }
@@ -186,4 +192,27 @@ export async function POST(request: NextRequest) {
       "X-Accel-Buffering": "no",
     },
   });
+}
+
+/**
+ * Extracts the assistant's full text from the accumulated OpenAI-style SSE
+ * payload (multiple `data: {...}` frames ending in `data: [DONE]`).
+ */
+function extractSseContent(acc: string): string {
+  let out = "";
+  for (const line of acc.split(/\r?\n/)) {
+    if (!line.startsWith("data:")) continue;
+    const payload = line.slice(5).trim();
+    if (!payload || payload === "[DONE]") continue;
+    try {
+      const parsed = JSON.parse(payload) as {
+        choices?: { delta?: { content?: string } }[];
+      };
+      const piece = parsed.choices?.[0]?.delta?.content;
+      if (typeof piece === "string") out += piece;
+    } catch {
+      // ignore malformed frames
+    }
+  }
+  return out;
 }

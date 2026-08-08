@@ -56,8 +56,8 @@ The product is free and supported by Google AdSense ads on the landing, dashboar
 │   ├── components/               # UI kit + feature components
 │   ├── lib/
 │   │   ├── supabase/             # client / server / proxy helpers
-│   │   ├── ai/                   # Gemini + vision OCR helpers
-│   │   ├── gemini.ts             # Gemini chat + streaming client
+│   │   ├── ai/                   # NVIDIA text AI + vision OCR helpers
+│   │   ├── nvidia.ts             # NVIDIA NIM (OpenAI-compatible) client
 │   │   ├── pdf.ts                # PDF text extraction + scan detection
 │   │   ├── ocr.ts                # PDF page rasterization
 │   │   ├── analytics.ts          # Dashboard stats + study streak
@@ -73,7 +73,7 @@ The product is free and supported by Google AdSense ads on the landing, dashboar
 
 - Node.js 18.18+ (Node 20+ recommended)
 - A Supabase project
-- A Gemini API key
+- An NVIDIA NIM API key (for text AI) and a vision-capable API key (Gemini, for OCR)
 
 ### Install
 
@@ -88,12 +88,13 @@ Copy `.env.example` to `.env.local` and fill in the values:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-GEMINI_API_KEY=your-gemini-api-key
+NVIDIA_API_KEY=your-nvidia-nim-api-key
+VISION_API_KEY=your-gemini-api-key
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 > Find `SUPABASE_URL` and `ANON_KEY` under **Supabase Dashboard → Project Settings → API**.
-> Create a free API key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+> Create an NVIDIA NIM API key at [build.nvidia.com](https://build.nvidia.com) and a free Google API key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 
 ### Set up the database
 
@@ -130,9 +131,9 @@ Open [http://localhost:3000](http://localhost:3000).
 ## 2. How it works
 
 1. **Upload** a PDF (`POST /api/upload`). The file is stored privately in the `documents` bucket at `{user_id}/{uuid}.pdf`, and the text is extracted with `pdf-parse`. If the page has little extractable text (`isLikelyScanned`), the document is flagged `needs_ocr` and the OCR runner modal kicks in.
-2. **OCR** (`POST /api/ocr`) rasterizes each page with `pdf-to-img` and sends the images to the vision model (`GEMINI_VISION_MODEL`), which returns `=== PAGE n ===`-delimited transcriptions that are stored in `document_content`.
-3. **Generate** summaries, flashcards, quizzes, or mind maps. Each route loads the user's own document content, builds a strict-JSON prompt, calls Gemini, and stores an entry in `study_activities`.
-4. **Chat** streams tokens from Gemini straight to the browser through `POST /api/chat`. The assistant adapts its tone/approach to the learner profile, uses the document text as context, and remembers previous messages (persisted in `chat_messages`).
+2. **OCR** (`POST /api/ocr`) rasterizes each page with `pdf-to-img` and sends the images to the vision model (`VISION_MODEL`), which returns `=== PAGE n ===`-delimited transcriptions that are stored in `document_content`. Rendered page images are only ever sent to this vision provider, never to the text model.
+3. **Generate** summaries, flashcards, quizzes, or mind maps. Each route loads the user's own document content, builds a strict-JSON prompt, calls NVIDIA (DeepSeek V4 Flash via NVIDIA NIM), and stores an entry in `study_activities`.
+4. **Chat** streams tokens from NVIDIA straight to the browser through `POST /api/chat`. The assistant adapts its tone/approach to the learner profile, uses the document text as context, and remembers previous messages (persisted in `chat_messages`).
 5. **Profile** (`/profile`) lets learners set a display name, learning level, and goal. The dashboard shows weekly study activity and a streak based on `study_activities`.
 
 ---
@@ -173,9 +174,12 @@ the ad slots render a subtle **Advertisement** placeholder instead, so the app w
 | ------------------------- | -------- | ---------------------------------------- |
 | `NEXT_PUBLIC_SUPABASE_URL`| Yes      | Supabase project URL                     |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon (public) key       |
-| `GEMINI_API_KEY`          | Yes      | Google Gemini API key                    |
-| `GEMINI_MODEL`            | No       | Chat model, default `gemini-2.5-flash`   |
-| `GEMINI_VISION_MODEL`     | No       | OCR vision model, default `gemini-2.5-flash` |
+| `NVIDIA_API_KEY`          | Yes      | NVIDIA NIM API key (text AI)             |
+| `NVIDIA_MODEL`            | No       | Text model, default `deepseek-ai/deepseek-v4-flash` |
+| `NVIDIA_BASE_URL`         | No       | NVIDIA NIM endpoint, default `https://integrate.api.nvidia.com/v1` |
+| `VISION_API_KEY`          | Yes      | Vision API key (a Google Gemini key works) |
+| `VISION_MODEL`            | No       | OCR vision model, default `gemini-2.5-flash` |
+| `VISION_BASE_URL`         | No       | Custom vision endpoint (optional)        |
 | `NEXT_PUBLIC_APP_URL`     | No       | Canonical app URL (default localhost)    |
 | `NEXT_PUBLIC_AD_CLIENT`   | No       | Google AdSense publisher ID              |
 | `NEXT_PUBLIC_GOOGLE_TAG`  | No       | Google Analytics / Tag Manager ID        |
@@ -184,7 +188,8 @@ the ad slots render a subtle **Advertisement** placeholder instead, so the app w
 
 ## 6. Customization ideas
 
-- Try other Gemini models (e.g. `gemini-2.5-pro`) via `GEMINI_MODEL`.
+- Try other NVIDIA NIM models (e.g. `deepseek-ai/deepseek-v4-flash`) via `NVIDIA_MODEL`.
+- Swap the OCR vision model (e.g. `gemini-2.5-pro`) via `VISION_MODEL`.
 - Add per-user limits/quotas using `study_activities`.
 - Add PDF chapter detection before summarization.
 - Let learners pick a preferred model or tutor persona from the profile page.

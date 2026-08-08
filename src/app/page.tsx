@@ -120,7 +120,7 @@ const faqs = [
   },
   {
     q: "What AI model does StudyAI use?",
-    a: "StudyAI uses Google Gemini 2.5 Flash — a fast, powerful model with a very large context window, which is ideal for summarizing long documents.",
+    a: "StudyAI uses NVIDIA's DeepSeek V4 Flash — a fast, powerful model ideal for summarizing long documents and generating study tools. OCR transcription uses a separate vision model.",
   },
   {
     q: "Is StudyAI really free?",
@@ -498,7 +498,7 @@ export default function LandingPage() {
           </div>
           <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
             © {new Date().getFullYear()} StudyAI. Study smarter with AI · Free and
-            ad-supported · Powered by Next.js, Supabase & Gemini
+            ad-supported · Powered by Next.js, Supabase & NVIDIA
           </div>
         </div>
       </footer>

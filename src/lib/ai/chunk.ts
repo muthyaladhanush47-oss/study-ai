@@ -18,8 +18,8 @@ export type ChunkedDocument = {
   totalChars: number;
 };
 
-// Safe per-chunk size for the configured Gemini model. Gemini 2.5 Flash
-// has a 1M-token context, but chunking is about reliability and quality, so we
+// Safe per-chunk size for the configured NVIDIA model. DeepSeek V4 Flash
+// has a large context, but chunking is about reliability and quality, so we
 // stay far below the limit.
 export const MAX_CHUNK_CHARS = 12_000;
 export const HARD_MAX_CHUNK_CHARS = 16_000;

@@ -1,8 +1,23 @@
-import {
-  geminiGenerateText,
-  GEMINI_VISION_MODEL,
-  type GeminiContentPart,
-} from "@/lib/gemini";
+import { GoogleGenAI } from "@google/genai";
+
+/**
+ * Vision OCR provider.
+ *
+ * OCR renders each PDF page to an image and sends it to a VISION-CAPABLE model.
+ * The provider is intentionally configurable so any compatible vision API can
+ * be plugged in later:
+ *   - VISION_API_KEY   (required)
+ *   - VISION_MODEL     (default gemini-2.5-flash)
+ *   - VISION_BASE_URL  (optional; only set when using a custom endpoint)
+ *
+ * The current implementation uses the official @google/genai SDK, so a Google
+ * Gemini API key is the compatible option today. Never send rendered page
+ * images to deepseek-ai/deepseek-v4-flash (or any other text-only model).
+ */
+
+const VISION_API_KEY = process.env.VISION_API_KEY;
+const VISION_MODEL = process.env.VISION_MODEL || "gemini-2.5-flash";
+const VISION_BASE_URL = process.env.VISION_BASE_URL;
 
 export type PageImage = {
   page: number;
@@ -28,6 +43,79 @@ const USER_PROMPT = [
   "If a page contains no readable text at all, output its marker followed by '(no readable text)'.",
 ].join("\n");
 
+let client: GoogleGenAI | null = null;
+
+function getClient(): GoogleGenAI {
+  if (!VISION_API_KEY) {
+    throw new Error(
+      "VISION_API_KEY is not configured. OCR needs a vision-capable model (a Google Gemini API key works).",
+    );
+  }
+  if (!client) {
+    client = new GoogleGenAI({
+      apiKey: VISION_API_KEY,
+      ...(VISION_BASE_URL ? { httpOptions: { baseUrl: VISION_BASE_URL } } : {}),
+    });
+  }
+  return client;
+}
+
+function describeVisionError(err: unknown): Error {
+  const message = err instanceof Error ? err.message : String(err);
+  const low = message.toLowerCase();
+  const status =
+    err && typeof err === "object" && "status" in err
+      ? Number((err as { status?: unknown }).status)
+      : NaN;
+
+  if (
+    status === 401 ||
+    status === 403 ||
+    low.includes("api key") ||
+    low.includes("permission_denied") ||
+    low.includes("unauthorized")
+  ) {
+    return new Error(
+      "Vision API authentication failed. Check VISION_API_KEY.",
+    );
+  }
+  if (
+    status === 429 ||
+    low.includes("resource_exhausted") ||
+    low.includes("quota") ||
+    low.includes("rate limit")
+  ) {
+    return new Error(
+      "Vision API rate limit or quota reached. Please wait a moment and retry.",
+    );
+  }
+  if (
+    status === 404 ||
+    low.includes("not_found") ||
+    low.includes("does not exist") ||
+    low.includes("model not found")
+  ) {
+    return new Error("Vision model is unavailable. Check VISION_MODEL.");
+  }
+  if (low.includes("user location is not supported")) {
+    return new Error(
+      "Vision API is not available in your current region. Try a supported region or a different VISION_API_KEY.",
+    );
+  }
+  if (status === 400 || low.includes("invalid argument")) {
+    return new Error(
+      "Vision API rejected the request. The page image may be too large.",
+    );
+  }
+  if (status === 500 || status === 502 || status === 503 || status === 504) {
+    return new Error("Vision API is temporarily unavailable. Please retry.");
+  }
+  if (Number.isFinite(status)) {
+    return new Error(`Vision API request failed (${status}). ${message.slice(0, 200)}`);
+  }
+  return new Error(`Vision API request failed: ${message.slice(0, 300)}`);
+}
+
 /**
  * Transcribes a single page image with the vision model.
  * Pages are always processed one at a time so progress can be reported and
@@ -38,24 +126,32 @@ export async function transcribePage({
   image,
   mime,
 }: PageImage): Promise<string> {
-  const parts: GeminiContentPart[] = [
-    { type: "text", text: USER_PROMPT },
-    { type: "text", text: `=== PAGE ${page} ===` },
+  const parts = [
+    { text: USER_PROMPT },
+    { text: `=== PAGE ${page} ===` },
     {
-      type: "image",
-      mimeType: mime ?? "image/png",
-      base64: image.toString("base64"),
+      inlineData: { mimeType: mime ?? "image/png", data: image.toString("base64") },
     },
   ];
 
-  const raw = await geminiGenerateText({
-    model: GEMINI_VISION_MODEL,
-    system: SYSTEM,
-    messages: [{ role: "user", content: parts }],
-    temperature: 0.1,
-    maxTokens: 6000,
-    timeoutMs: 120_000,
-  });
+  let response;
+  try {
+    response = await getClient().models.generateContent({
+      model: VISION_MODEL,
+      contents: [{ role: "user", parts }],
+      config: {
+        systemInstruction: { role: "user", parts: [{ text: SYSTEM }] },
+        temperature: 0.1,
+        maxOutputTokens: 6000,
+        httpOptions: { timeout: 120_000 },
+      },
+    });
+  } catch (err) {
+    throw describeVisionError(err);
+  }
+
+  const raw = response.text?.trim();
+  if (!raw) return "";
 
   const entries = parseByPage(raw, [page]);
   return entries[0]?.text ?? "";

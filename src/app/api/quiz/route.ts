@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { geminiGenerateText } from "@/lib/gemini";
+import { nvidiaChat } from "@/lib/nvidia";
 import { extractJson } from "@/lib/ai/extract";
 import { getOwnedDocument, logActivity } from "@/lib/ai/document";
 import type { QuizQuestion, QuizQuestionType, QuizResult } from "@/types";
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const raw = await geminiGenerateText({
+  const raw = await nvidiaChat({
     system: SYSTEM,
     messages: [
       {
