@@ -49,15 +49,6 @@ function uploadToStorage(
           return;
         }
 
-        // TEMP DIAGNOSTIC (metadata only, never file contents):
-        console.log("[UPLOAD] Direct Storage upload", {
-          endpoint,
-          fileName: file.name,
-          fileSize: file.size,
-          contentType: file.type,
-          filePath,
-        });
-
         const form = new FormData();
         form.append("cacheControl", "3600");
         form.append("", file);
@@ -75,8 +66,6 @@ function uploadToStorage(
 
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            // TEMP DIAGNOSTIC:
-            console.log("[UPLOAD] Storage upload successful", { filePath });
             onProgress(100);
             resolve();
             return;
@@ -184,15 +173,6 @@ export function UploadDialog({
         title: title.trim() || undefined,
       });
 
-      // TEMP DIAGNOSTIC — verify this stays tiny (a few hundred bytes).
-      // The body must never contain a File, FormData, ArrayBuffer, Blob or
-      // base64 PDF — only primitive metadata fields.
-      console.log("[UPLOAD] Registering document via /api/documents/create", {
-        endpoint: "/api/documents/create",
-        requestBytes: new Blob([metadata]).size,
-        filePath,
-      });
-
       setStage("create");
       let res: Response;
       try {
@@ -213,8 +193,6 @@ export function UploadDialog({
 
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-
-        console.log("Upload API Error:", body);
 
         // The server does not keep orphaned files; remove anything left behind.
         await supabase.storage

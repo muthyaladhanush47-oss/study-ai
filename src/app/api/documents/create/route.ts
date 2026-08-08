@@ -136,12 +136,11 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // TEMP DIAGNOSTIC (metadata only, never file contents):
-  console.log("[DOCUMENT CREATE]", {
-    filePath,
-    fileName,
+  logOperation({
+    requestId,
+    userId: user.id,
+    operation: "create.upload_received",
     fileSize,
-    contentType,
   });
 
   // Verify the object actually landed in Storage and that its size matches
