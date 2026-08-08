@@ -53,7 +53,7 @@ export async function transcribePage({
     system: SYSTEM,
     messages: [{ role: "user", content: parts }],
     temperature: 0.1,
-    maxTokens: 8192,
+    maxTokens: 6000,
     timeoutMs: 60_000,
   });
 
