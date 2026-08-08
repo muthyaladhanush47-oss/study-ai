@@ -13,8 +13,94 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { createClient } from "@/lib/supabase/client";
 
 const MAX_SIZE = 100 * 1024 * 1024;
+
+type UploadResult = { document: { id: string }; needsOcr: boolean };
+
+function encodeStoragePath(path: string) {
+  return path.split("/").map(encodeURIComponent).join("/");
+}
+
+/**
+ * Uploads the file directly from the browser to Supabase Storage using the
+ * authenticated user's token (RLS applies) instead of POSTing it through a
+ * Vercel function, which caps request bodies. Mirrors what @supabase/storage-js
+ * does for a plain `upload()` call, but with a progress callback.
+ */
+function uploadToStorage(
+  file: File,
+  filePath: string,
+  onProgress: (percent: number) => void,
+): Promise<void> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+
+  return new Promise((resolve, reject) => {
+    createClient()
+      .auth.getSession()
+      .then(({ data }) => {
+        const token = data.session?.access_token;
+        if (!token) {
+          reject(new Error("You must be signed in to upload files."));
+          return;
+        }
+
+        const form = new FormData();
+        form.append("cacheControl", "3600");
+        form.append("", file);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open(
+          "POST",
+          `${supabaseUrl}/storage/v1/object/documents/${encodeStoragePath(filePath)}`,
+        );
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.setRequestHeader("x-upsert", "false");
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && e.total > 0) {
+            onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            onProgress(100);
+            resolve();
+            return;
+          }
+          let message = `Upload failed (${xhr.status}).`;
+          try {
+            const body = JSON.parse(xhr.responseText) as {
+              message?: string;
+              error?: string;
+            };
+            if (body.message) message = body.message;
+            else if (body.error) message = body.error;
+          } catch {
+            // response body was not JSON
+          }
+          if (xhr.status === 413) {
+            message = "Upload failed: the file exceeds the storage size limit.";
+          }
+          reject(new Error(message));
+        };
+
+        xhr.onerror = () =>
+          reject(
+            new Error(
+              "Upload failed. Check your connection and try again.",
+            ),
+          );
+
+        xhr.send(form);
+      })
+      .catch(() => {
+        reject(new Error("Could not start the upload. Please try again."));
+      });
+  });
+}
 
 export function UploadDialog({
   onUploaded,
@@ -27,6 +113,7 @@ export function UploadDialog({
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function onFiles(files: FileList | null) {
@@ -52,30 +139,67 @@ export function UploadDialog({
     e.preventDefault();
     if (!file) return;
     setUploading(true);
+    setProgress(0);
     setError(null);
 
-    const formData = new FormData();
-    formData.append("file", file);
-    if (title.trim()) formData.append("title", title.trim());
+    const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) {
+      setUploading(false);
+      setError("You must be signed in to upload files.");
+      return;
+    }
+
+    const ext = file.name.toLowerCase().split(".").pop() ?? "";
+    const filePath = `${userId}/${crypto.randomUUID()}.${ext}`;
 
     try {
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      await uploadToStorage(file, filePath, setProgress);
+
+      let res: Response;
+      try {
+        res = await fetch("/api/documents/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filePath,
+            fileName: file.name,
+            fileSize: file.size,
+            contentType: file.type,
+            title: title.trim() || undefined,
+          }),
+        });
+      } catch {
+        await supabase.storage
+          .from("documents")
+          .remove([filePath])
+          .catch(() => {});
+        throw new Error(
+          "Uploaded file could not be registered. It has been removed — please try again.",
+        );
+      }
+
       if (!res.ok) {
         const body = await res.json().catch(() => null);
 
         console.log("Upload API Error:", body);
 
-        throw new Error(
-        body?.error ?? `Upload failed (${res.status})`
-       );
+        // The server does not keep orphaned files; remove anything left behind.
+        await supabase.storage
+          .from("documents")
+          .remove([filePath])
+          .catch(() => {});
+        throw new Error(body?.error ?? `Upload failed (${res.status})`);
       }
-      const data = (await res.json()) as {
-        document: { id: string };
-        needsOcr: boolean;
-      };
+
+      const data = (await res.json()) as UploadResult;
       setOpen(false);
       setFile(null);
       setTitle("");
+      setProgress(null);
       onUploaded?.({
         documentId: data.document.id,
         needsOcr: Boolean(data.needsOcr),
@@ -155,6 +279,24 @@ export function UploadDialog({
                 onChange={(e) => onFiles(e.target.files)}
               />
             </div>
+
+            {uploading && (
+              <div className="space-y-1.5">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-fuchsia-500 transition-all duration-200"
+                    style={{ width: `${Math.max(progress ?? 0, 2)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {progress === 100
+                    ? "Preparing document…"
+                    : progress != null
+                      ? `Uploading file… ${progress}%`
+                      : "Uploading file…"}
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
               <ScanText className="h-4 w-4 shrink-0 text-primary" />
