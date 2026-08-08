@@ -136,6 +136,14 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // TEMP DIAGNOSTIC (metadata only, never file contents):
+  console.log("[DOCUMENT CREATE]", {
+    filePath,
+    fileName,
+    fileSize,
+    contentType,
+  });
+
   // Verify the object actually landed in Storage and that its size matches
   // what the client reported (integrity check without trusting the client).
   const { data: info, error: infoError } = await supabase.storage

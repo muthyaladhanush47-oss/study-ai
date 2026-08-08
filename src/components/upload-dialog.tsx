@@ -28,6 +28,8 @@ function encodeStoragePath(path: string) {
  * authenticated user's token (RLS applies) instead of POSTing it through a
  * Vercel function, which caps request bodies. Mirrors what @supabase/storage-js
  * does for a plain `upload()` call, but with a progress callback.
+ *
+ * The URL below is the Supabase Storage endpoint — never a Vercel API route.
  */
 function uploadToStorage(
   file: File,
@@ -35,6 +37,7 @@ function uploadToStorage(
   onProgress: (percent: number) => void,
 ): Promise<void> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const endpoint = `${supabaseUrl}/storage/v1/object/documents/${encodeStoragePath(filePath)}`;
 
   return new Promise((resolve, reject) => {
     createClient()
@@ -46,15 +49,21 @@ function uploadToStorage(
           return;
         }
 
+        // TEMP DIAGNOSTIC (metadata only, never file contents):
+        console.log("[UPLOAD] Direct Storage upload", {
+          endpoint,
+          fileName: file.name,
+          fileSize: file.size,
+          contentType: file.type,
+          filePath,
+        });
+
         const form = new FormData();
         form.append("cacheControl", "3600");
         form.append("", file);
 
         const xhr = new XMLHttpRequest();
-        xhr.open(
-          "POST",
-          `${supabaseUrl}/storage/v1/object/documents/${encodeStoragePath(filePath)}`,
-        );
+        xhr.open("POST", endpoint);
         xhr.setRequestHeader("Authorization", `Bearer ${token}`);
         xhr.setRequestHeader("x-upsert", "false");
 
@@ -66,6 +75,8 @@ function uploadToStorage(
 
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
+            // TEMP DIAGNOSTIC:
+            console.log("[UPLOAD] Storage upload successful", { filePath });
             onProgress(100);
             resolve();
             return;
@@ -82,7 +93,8 @@ function uploadToStorage(
             // response body was not JSON
           }
           if (xhr.status === 413) {
-            message = "Upload failed: the file exceeds the storage size limit.";
+            message =
+              "Supabase Storage rejected this file (413). Check the documents bucket file-size limit.";
           }
           reject(new Error(message));
         };
@@ -90,7 +102,7 @@ function uploadToStorage(
         xhr.onerror = () =>
           reject(
             new Error(
-              "Upload failed. Check your connection and try again.",
+              "Storage upload failed. Check your connection and try again.",
             ),
           );
 
@@ -114,6 +126,7 @@ export function UploadDialog({
   const [title, setTitle] = useState("");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
+  const [stage, setStage] = useState<"storage" | "create" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function onFiles(files: FileList | null) {
@@ -157,20 +170,36 @@ export function UploadDialog({
     const filePath = `${userId}/${crypto.randomUUID()}.${ext}`;
 
     try {
+      // Step 1: send ONLY the file bytes to Supabase Storage (not Vercel).
+      setStage("storage");
       await uploadToStorage(file, filePath, setProgress);
 
+      // Step 2: register the document with /api/documents/create using ONLY
+      // small JSON metadata. The PDF bytes never touch this request.
+      const metadata = JSON.stringify({
+        filePath,
+        fileName: file.name,
+        fileSize: file.size,
+        contentType: file.type,
+        title: title.trim() || undefined,
+      });
+
+      // TEMP DIAGNOSTIC — verify this stays tiny (a few hundred bytes).
+      // The body must never contain a File, FormData, ArrayBuffer, Blob or
+      // base64 PDF — only primitive metadata fields.
+      console.log("[UPLOAD] Registering document via /api/documents/create", {
+        endpoint: "/api/documents/create",
+        requestBytes: new Blob([metadata]).size,
+        filePath,
+      });
+
+      setStage("create");
       let res: Response;
       try {
         res = await fetch("/api/documents/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            filePath,
-            fileName: file.name,
-            fileSize: file.size,
-            contentType: file.type,
-            title: title.trim() || undefined,
-          }),
+          body: metadata,
         });
       } catch {
         await supabase.storage
@@ -178,7 +207,7 @@ export function UploadDialog({
           .remove([filePath])
           .catch(() => {});
         throw new Error(
-          "Uploaded file could not be registered. It has been removed — please try again.",
+          "Document creation failed — could not reach the server. The uploaded file was removed; please try again.",
         );
       }
 
@@ -192,7 +221,14 @@ export function UploadDialog({
           .from("documents")
           .remove([filePath])
           .catch(() => {});
-        throw new Error(body?.error ?? `Upload failed (${res.status})`);
+        if (res.status === 413) {
+          throw new Error(
+            "The document creation API received an unexpectedly large request. The PDF must be uploaded directly to Storage.",
+          );
+        }
+        throw new Error(
+          body?.error ?? `Document creation failed (HTTP ${res.status}).`,
+        );
       }
 
       const data = (await res.json()) as UploadResult;
@@ -200,6 +236,7 @@ export function UploadDialog({
       setFile(null);
       setTitle("");
       setProgress(null);
+      setStage(null);
       onUploaded?.({
         documentId: data.document.id,
         needsOcr: Boolean(data.needsOcr),
