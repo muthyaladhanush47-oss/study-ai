@@ -135,7 +135,7 @@ export function MarketingShell({
           </div>
           <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
             © {new Date().getFullYear()} StudyAI. Study smarter with AI · Free and
-            ad-supported · Powered by Next.js, Supabase & OpenRouter
+            ad-supported · Powered by Next.js, Supabase & Gemini
           </div>
         </div>
       </footer>

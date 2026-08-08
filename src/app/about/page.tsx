@@ -34,7 +34,7 @@ const sections = [
   {
     heading: "Our tech",
     body: [
-      "StudyAI is built with Next.js, Supabase for storage and authentication, and leading AI models via OpenRouter — including a vision model that transcribes handwriting with OCR.",
+      "StudyAI is built with Next.js, Supabase for storage and authentication, and Google's Gemini AI — including a vision model that transcribes handwriting with OCR.",
     ],
   },
   {

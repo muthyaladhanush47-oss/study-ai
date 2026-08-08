@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { openRouterStream } from "@/lib/openrouter";
+import { geminiGenerateTextStream } from "@/lib/gemini";
 import { truncate } from "@/lib/pdf";
 import { getOwnedDocument, getProfile, buildStudyContext, logActivity } from "@/lib/ai/document";
 import type { ChatMessage } from "@/types";
@@ -136,44 +136,42 @@ export async function POST(request: NextRequest) {
     messages.push({ role: "assistant", content: lastAssistant });
   }
 
-  const upstream = await openRouterStream({
+  const textStream = await geminiGenerateTextStream({
     system,
-    messages: messages.slice(-20),
+    messages: messages.slice(-20).map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      content: m.content,
+    })),
     temperature: 0.7,
     maxTokens: 2048,
   });
 
   const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  const reader = upstream.body?.getReader();
 
   let full = "";
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      if (!reader) {
-        controller.close();
-        return;
-      }
       try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          full += decoder.decode(value, { stream: true });
-          controller.enqueue(value);
+        for await (const chunk of textStream) {
+          full += chunk;
+          // Keep the OpenAI-style wire format the chat UI already parses.
+          const frame = `data: ${JSON.stringify({
+            choices: [{ delta: { content: chunk } }],
+          })}\n\n`;
+          controller.enqueue(encoder.encode(frame));
         }
+        controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
       } finally {
-        decoder.decode();
         controller.close();
-        // Persist the assistant reply (strip SSE framing).
-        const content = extractSseContent(full);
-        if (content) {
+        // Persist the assistant reply.
+        if (full.trim()) {
           await supabase.from("chat_messages").insert({
             id: crypto.randomUUID(),
             chat_id: documentId,
             user_id: user.id,
             role: "assistant",
-            content,
+            content: full,
           });
         }
       }
@@ -188,24 +186,4 @@ export async function POST(request: NextRequest) {
       "X-Accel-Buffering": "no",
     },
   });
-}
-
-function extractSseContent(raw: string): string {
-  const parts: string[] = [];
-  for (const line of raw.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith("data:")) continue;
-    const payload = trimmed.slice(5).trim();
-    if (payload === "[DONE]") continue;
-    try {
-      const json = JSON.parse(payload) as {
-        choices?: { delta?: { content?: string } }[];
-      };
-      const delta = json.choices?.[0]?.delta?.content;
-      if (delta) parts.push(delta);
-    } catch {
-      // ignore partial frames
-    }
-  }
-  return parts.join("");
 }

@@ -18,7 +18,7 @@ export type ChunkedDocument = {
   totalChars: number;
 };
 
-// Safe per-chunk size for the configured OpenRouter models. Gemini 2.5 Flash
+// Safe per-chunk size for the configured Gemini model. Gemini 2.5 Flash
 // has a 1M-token context, but chunking is about reliability and quality, so we
 // stay far below the limit.
 export const MAX_CHUNK_CHARS = 12_000;

@@ -1,7 +1,8 @@
-import { openRouterChat, type OpenRouterContentPart } from "@/lib/openrouter";
-
-const VISION_MODEL =
-  process.env.OPENROUTER_VISION_MODEL || "google/gemini-2.5-flash";
+import {
+  geminiGenerateText,
+  GEMINI_VISION_MODEL,
+  type GeminiContentPart,
+} from "@/lib/gemini";
 
 export type PageImage = {
   page: number;
@@ -29,69 +30,35 @@ const USER_PROMPT = [
 
 /**
  * Transcribes a single page image with the vision model.
- * Used by the OCR pipeline to process pages one at a time so progress
- * can be reported and one bad page never fails the whole document.
+ * Pages are always processed one at a time so progress can be reported and
+ * one bad page never fails the whole document.
  */
 export async function transcribePage({
   page,
   image,
   mime,
 }: PageImage): Promise<string> {
-  const parts: OpenRouterContentPart[] = [
+  const parts: GeminiContentPart[] = [
     { type: "text", text: USER_PROMPT },
     { type: "text", text: `=== PAGE ${page} ===` },
     {
-      type: "image_url",
-      image_url: {
-        url: `data:${mime ?? "image/png"};base64,${image.toString("base64")}`,
-      },
+      type: "image",
+      mimeType: mime ?? "image/png",
+      base64: image.toString("base64"),
     },
   ];
 
-  const raw = await openRouterChat({
-    model: VISION_MODEL,
+  const raw = await geminiGenerateText({
+    model: GEMINI_VISION_MODEL,
     system: SYSTEM,
     messages: [{ role: "user", content: parts }],
     temperature: 0.1,
     maxTokens: 6000,
-    timeoutMs: 60_000,
+    timeoutMs: 120_000,
   });
 
   const entries = parseByPage(raw, [page]);
   return entries[0]?.text ?? "";
-}
-
-/**
- * Sends all page images in one request and returns per-page transcriptions.
- * Kept for batch use-cases; the OCR route uses transcribePage for reliability.
- */
-export async function transcribePages(
-  images: PageImage[],
-): Promise<{ page: number; text: string }[]> {
-  if (images.length === 0) return [];
-
-  const parts: OpenRouterContentPart[] = [
-    { type: "text", text: USER_PROMPT },
-  ];
-  for (const { page, image, mime } of images) {
-    parts.push({ type: "text", text: `=== PAGE ${page} ===` });
-    parts.push({
-      type: "image_url",
-      image_url: {
-        url: `data:${mime ?? "image/png"};base64,${image.toString("base64")}`,
-      },
-    });
-  }
-
-  const raw = await openRouterChat({
-    model: VISION_MODEL,
-    system: SYSTEM,
-    messages: [{ role: "user", content: parts }],
-    temperature: 0.1,
-    maxTokens: 65_536,
-  });
-
-  return parseByPage(raw, images.map((i) => i.page));
 }
 
 function parseByPage(

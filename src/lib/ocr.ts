@@ -34,7 +34,7 @@ export async function destroyPdf(handle: PdfHandle): Promise<void> {
 /**
  * Re-encodes a rendered PNG page as a downscaled JPEG. Handwriting stays
  * readable at ~2400px on the long edge while the vision payload drops from
- * ~2–5 MB to a few hundred KB, so each OpenRouter call is smaller and faster.
+ * ~2–5 MB to a few hundred KB, so each Gemini vision call is smaller and faster.
  */
 export async function compressPageImage(
   png: Buffer,
