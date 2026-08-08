@@ -113,8 +113,21 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
+  /* Warm cream/ink landing palette (Bolt design language) */
+  --color-cream-50: #fdfaf3;
+  --color-cream-100: #faf4e7;
+  --color-cream-200: #f3e9d3;
+  --color-cream-300: #e9dab8;
+  --color-ink-400: #8b8474;
+  --color-ink-500: #6b6353;
+  --color-ink-600: #4f4637;
+  --color-ink-700: #3a3225;
+  --color-ink-800: #2a241a;
+  --color-ink-900: #1e1912;
+
   --font-sans: var(--font-geist-sans);
   --font-heading: var(--font-inter);
+  --font-display: var(--font-fraunces);
   --font-hand: var(--font-patrick-hand);
   --font-handscript: var(--font-caveat);
   --font-kalam: var(--font-kalam);
@@ -127,6 +140,8 @@
   --animate-slide-up: slide-up 0.45s ease-out both;
   --animate-fade-in: fade-in 0.45s ease-out both;
   --animate-shimmer: shimmer 2s linear infinite;
+  --animate-marquee: marquee 32s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
 
   @keyframes slide-up {
     from {
@@ -154,6 +169,25 @@
     }
     to {
       background-position: 700px 0;
+    }
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0%);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
     }
   }
 }

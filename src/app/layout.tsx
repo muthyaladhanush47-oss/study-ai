@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Caveat, Geist, Inter, Kalam, Patrick_Hand } from "next/font/google";
+import { Caveat, Fraunces, Geist, Inter, Kalam, Patrick_Hand } from "next/font/google";
 import Script from "next/script";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AdsenseLoader } from "@/components/ads/adsense-loader";
@@ -9,6 +9,12 @@ import "./globals.css";
 const geist = Geist({
   subsets: ["latin"],
   variable: "--font-geist-sans",
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
   display: "swap",
 });
 
@@ -89,7 +95,7 @@ export default function RootLayout({
   const adClient = process.env.NEXT_PUBLIC_AD_CLIENT;
 
   return (
-    <html lang="en" suppressHydrationWarning className={cn(geist.variable, inter.variable, patrickHand.variable, caveat.variable, kalam.variable)}>
+    <html lang="en" suppressHydrationWarning className={cn(geist.variable, fraunces.variable, inter.variable, patrickHand.variable, caveat.variable, kalam.variable)}>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <ThemeProvider
           attribute="class"
