@@ -30,6 +30,8 @@ function sanitize(fields: LogFields) {
     "mime",
     "model",
     "status",
+    "attempt",
+    "delayMs",
     "visionApiKeyPresent",
     "visionModelPresent",
     "visionBaseUrlPresent",

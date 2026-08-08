@@ -98,7 +98,7 @@ export function LandingNavbar() {
           type="button"
           aria-label="Toggle menu"
           onClick={() => setOpen((v) => !v)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-cream-200 bg-white/70 text-ink-800 md:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-cream-200 bg-card/70 text-ink-800 md:hidden"
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -137,7 +137,7 @@ export function LandingNavbar() {
                 <Link
                   href="/login"
                   onClick={() => setOpen(false)}
-                  className="rounded-full border border-cream-200 bg-white/70 px-4 py-2.5 text-center text-sm font-semibold text-ink-800"
+                  className="rounded-full border border-cream-200 bg-card/70 px-4 py-2.5 text-center text-sm font-semibold text-ink-800"
                 >
                   Log in
                 </Link>

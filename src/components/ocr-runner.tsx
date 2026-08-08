@@ -58,6 +58,7 @@ export function OcrRunner({
   const [page, setPage] = useState<number | null>(null);
   const [total, setTotal] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -73,6 +74,7 @@ export function OcrRunner({
     setPage(null);
     setTotal(null);
     setMessage(null);
+    setWaiting(false);
     setError(null);
 
     try {
@@ -108,19 +110,29 @@ export function OcrRunner({
         for (const ev of events) {
           if (ev.event === "status") {
             setPhase("reading");
+            setWaiting(false);
             setMessage(String(ev.data.message ?? ""));
           } else if (ev.event === "progress") {
             setPhase("transcribing");
+            setWaiting(false);
+            setPage(Number(ev.data.page));
+            setTotal(Number(ev.data.total));
+            setMessage(String(ev.data.message ?? ""));
+          } else if (ev.event === "waiting") {
+            setPhase("transcribing");
+            setWaiting(true);
             setPage(Number(ev.data.page));
             setTotal(Number(ev.data.total));
             setMessage(String(ev.data.message ?? ""));
           } else if (ev.event === "error") {
             setPhase("error");
+            setWaiting(false);
             setError(String(ev.data.message ?? "OCR failed."));
             finished = true;
             break;
           } else if (ev.event === "done") {
             setPhase("done");
+            setWaiting(false);
             setMessage(null);
             finished = true;
             break;
@@ -207,8 +219,20 @@ export function OcrRunner({
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-                <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
+              <div
+                className={cn(
+                  "flex items-center gap-3 rounded-lg border px-4 py-3 text-sm",
+                  waiting
+                    ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                    : "border-border bg-muted/40 text-muted-foreground",
+                )}
+              >
+                <Loader2
+                  className={cn(
+                    "h-5 w-5 shrink-0 animate-spin",
+                    waiting ? "text-amber-500" : "text-primary",
+                  )}
+                />
                 {message ??
                   (phase === "transcribing"
                     ? "Transcribing…"
@@ -217,16 +241,18 @@ export function OcrRunner({
               <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                 <div
                   className={cn(
-                    "h-full rounded-full bg-gradient-to-r from-primary to-fuchsia-500 transition-all duration-500",
+                    "h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-500",
                     progressPercent == null ? "w-1/3 animate-pulse" : "",
                   )}
                   style={{ width: progressPercent == null ? "33%" : `${progressPercent}%` }}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                {progressPercent != null
-                  ? `${progressPercent}% complete`
-                  : "This can take a minute or two for long PDFs. You can keep the tab open — we&apos;ll tell you when it&apos;s ready."}
+                {waiting
+                  ? "Waiting for Gemini to cool down. Retrying automatically — no action needed."
+                  : progressPercent != null
+                    ? `${progressPercent}% complete`
+                    : "This can take a minute or two for long PDFs. You can keep the tab open — we'll tell you when it's ready."}
               </p>
             </div>
           )}

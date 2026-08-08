@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, UserRound } from "lucide-react";
+import { BookOpenCheck, Menu, Sparkles, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -22,7 +22,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { navItems, Sidebar } from "@/components/shell/sidebar";
+import { navItems, toolNav, Sidebar } from "@/components/shell/sidebar";
 
 export function AppShell({
   userEmail,
@@ -38,14 +38,22 @@ export function AppShell({
   const activeLabel =
     navItems.find(
       (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-    )?.label ?? "Study";
+    )?.label ??
+    toolNav.find(
+      (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+    )?.label ??
+    (pathname.startsWith("/profile") || pathname.startsWith("/analytics")
+      ? pathname.startsWith("/profile")
+        ? "Profile"
+        : "Analytics"
+      : "Study");
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-cream-50 dark:bg-background">
       <Sidebar className="hidden lg:flex" />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-background/80 px-4 backdrop-blur sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-cream-200/80 bg-cream-50/85 px-4 backdrop-blur-md sm:px-6 lg:px-10 dark:bg-background/85">
           <div className="flex items-center gap-2">
             <Sheet>
               <SheetTrigger
@@ -58,14 +66,14 @@ export function AppShell({
                   />
                 }
               >
-                <Menu />
+                <Menu className="h-5 w-5 text-ink-700 dark:text-ink-300" />
               </SheetTrigger>
-              <SheetContent side="left" className="w-64 p-0">
+              <SheetContent side="left" className="w-72 p-0">
                 <SheetTitle className="sr-only">Menu</SheetTitle>
                 <MobileMenu />
               </SheetContent>
             </Sheet>
-            <h1 className="font-heading text-base font-semibold sm:text-lg">
+            <h1 className="font-display text-lg font-semibold tracking-tight text-ink-900 sm:text-xl">
               {activeLabel}
             </h1>
           </div>
@@ -83,7 +91,7 @@ export function AppShell({
                 }
               >
                 <Avatar size="sm">
-                  <AvatarFallback className="bg-primary/10 text-primary">
+                  <AvatarFallback className="bg-emerald-600/15 font-semibold text-emerald-700 dark:text-emerald-300">
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>
@@ -94,16 +102,13 @@ export function AppShell({
                     {userEmail}
                   </p>
                   <p className="truncate text-xs font-normal text-muted-foreground">
-                    Signed in as student
+                    Study smarter with StudyAI
                   </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   render={
-                    <Link
-                      href="/profile"
-                      className="flex items-center gap-2"
-                    >
+                    <Link href="/profile" className="flex items-center gap-2">
                       <UserRound />
                       Profile & learning level
                     </Link>
@@ -118,7 +123,7 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-10">
           {children}
         </main>
       </div>
@@ -129,27 +134,57 @@ export function AppShell({
 function MobileMenu() {
   const pathname = usePathname();
 
+  const linkClass = (href: string) =>
+    cn(
+      "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+      pathname === href || pathname.startsWith(`${href}/`)
+        ? "bg-emerald-600/10 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+        : "text-ink-600 hover:bg-cream-200/60 hover:text-ink-900 dark:text-ink-400 dark:hover:bg-ink-200/5 dark:hover:text-ink-200",
+    );
+
   return (
-    <nav className="flex h-full flex-col p-3">
-      {navItems.map((item) => {
-        const active =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
-        return (
+    <nav className="nice-scroll flex h-full flex-col gap-1 overflow-y-auto p-4">
+      <Link href="/dashboard" className="flex items-center gap-2 px-1 pb-4">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-500 text-white shadow-sm">
+          <BookOpenCheck className="h-5 w-5" />
+        </span>
+        <span className="font-display text-lg font-bold tracking-tight text-ink-900">
+          Study<span className="text-emerald-600">AI</span>
+        </span>
+      </Link>
+
+      <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-500">
+        Workspace
+      </p>
+      {navItems.map((item) => (
+        <Link key={item.href} href={item.href} className={linkClass(item.href)}>
+          <item.icon className="h-4 w-4" />
+          {item.label}
+        </Link>
+      ))}
+
+      <div className="pt-4">
+        <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-500">
+          AI Study tools
+        </p>
+        {toolNav.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className={cn(
-              "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-              active
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
+            className={linkClass(item.href) + " mt-0.5"}
           >
             <item.icon className="h-4 w-4" />
             {item.label}
           </Link>
-        );
-      })}
+        ))}
+      </div>
+
+      <div className="mt-6 flex items-center gap-2 rounded-2xl border border-cream-200 bg-cream-100/70 p-3 dark:bg-ink-200/5">
+        <Sparkles className="h-4 w-4 shrink-0 text-emerald-600" />
+        <p className="text-xs text-ink-600 dark:text-ink-400">
+          StudyAI is free and supported by ads — no subscriptions.
+        </p>
+      </div>
     </nav>
   );
 }

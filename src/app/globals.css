@@ -5,74 +5,154 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  --background: oklch(0.985 0.002 277);
-  --foreground: oklch(0.16 0.02 280);
+  /* ---- Warm cream/ink landing palette (light) ---- */
+  --cream-50: #fdfaf3;
+  --cream-100: #faf4e7;
+  --cream-200: #f3e9d3;
+  --cream-300: #e9dab8;
+  --cream-400: #d8c49a;
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.16 0.02 280);
+  --ink-400: #8b8474;
+  --ink-500: #6b6353;
+  --ink-600: #4f4637;
+  --ink-700: #3a3225;
+  --ink-800: #2a241a;
+  --ink-900: #1e1912;
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0.02 280);
+  /* Brand accent (emerald) — Tailwind baseline in light */
+  --emerald-50: #ecfdf5;
+  --emerald-100: #d1fae5;
+  --emerald-200: #a7f3d0;
+  --emerald-300: #6ee7b7;
+  --emerald-400: #34d399;
+  --emerald-500: #10b981;
+  --emerald-600: #059669;
+  --emerald-700: #047857;
+  --emerald-800: #065f46;
+  --emerald-900: #064e3b;
 
-  --primary: oklch(0.52 0.23 276);
-  --primary-foreground: oklch(0.985 0.002 277);
+  --amber-50: #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-200: #fde68a;
+  --amber-300: #fcd34d;
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+  --amber-700: #b45309;
+  --amber-800: #92400e;
+  --amber-900: #78350f;
 
-  --secondary: oklch(0.965 0.004 280);
-  --secondary-foreground: oklch(0.25 0.03 280);
+  /* Semantic tokens — cream/ink/emerald design system */
+  --background: var(--cream-50);
+  --foreground: var(--ink-900);
 
-  --muted: oklch(0.965 0.004 280);
-  --muted-foreground: oklch(0.53 0.01 280);
+  --card: #ffffff;
+  --card-foreground: var(--ink-900);
 
-  --accent: oklch(0.945 0.04 285);
-  --accent-foreground: oklch(0.36 0.14 285);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink-900);
+
+  --primary: var(--emerald-600);
+  --primary-foreground: #ffffff;
+
+  --secondary: var(--cream-100);
+  --secondary-foreground: var(--ink-700);
+
+  --muted: var(--cream-100);
+  --muted-foreground: var(--ink-500);
+
+  --accent: var(--emerald-50);
+  --accent-foreground: var(--emerald-700);
 
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
 
-  --border: oklch(0.915 0.004 280);
-  --input: oklch(0.915 0.004 280);
-  --ring: oklch(0.62 0.18 280);
+  --border: var(--cream-200);
+  --input: var(--cream-300);
+  --ring: var(--emerald-600);
 
-  --chart-1: oklch(0.52 0.23 276);
-  --chart-2: oklch(0.65 0.16 175);
+  --sidebar: var(--cream-50);
+  --sidebar-foreground: var(--ink-700);
+
+  --chart-1: var(--emerald-600);
+  --chart-2: var(--amber-500);
   --chart-3: oklch(0.73 0.16 60);
   --chart-4: oklch(0.6 0.19 325);
   --chart-5: oklch(0.58 0.17 220);
 }
 
 .dark {
-  --background: oklch(0.135 0.014 280);
-  --foreground: oklch(0.98 0.002 277);
+  /* --- Warm ink/charcoal palette (dark) --- */
+  --cream-50: #1b1712;
+  --cream-100: #211c16;
+  --cream-200: #2d271e;
+  --cream-300: #3a3228;
+  --cream-400: #4a4133;
 
-  --card: oklch(0.175 0.015 280);
-  --card-foreground: oklch(0.98 0.002 277);
+  --ink-400: #a89f8f;
+  --ink-500: #bdb4a3;
+  --ink-600: #ccc3b1;
+  --ink-700: #d9d1c0;
+  --ink-800: #e5ddce;
+  --ink-900: #f2edde;
 
-  --popover: oklch(0.175 0.015 280);
-  --popover-foreground: oklch(0.98 0.002 277);
+  --emerald-50: #062a1c;
+  --emerald-100: #0a3a26;
+  --emerald-200: #11523b;
+  --emerald-300: #176a49;
+  --emerald-400: #2f9e68;
+  --emerald-500: #10b981;
+  --emerald-600: #34d399;
+  --emerald-700: #5eead4;
+  --emerald-800: #059669;
+  --emerald-900: #047857;
 
-  --primary: oklch(0.7 0.16 277);
-  --primary-foreground: oklch(0.14 0.015 280);
+  --amber-50: #271c05;
+  --amber-100: #3a2c0a;
+  --amber-200: #51380c;
+  --amber-300: #6b4a10;
+  --amber-400: #d97706;
+  --amber-500: #f59e0b;
+  --amber-600: #fbbf24;
+  --amber-700: #fde68a;
+  --amber-800: #92400e;
+  --amber-900: #78350f;
 
-  --secondary: oklch(0.24 0.016 280);
-  --secondary-foreground: oklch(0.98 0.002 277);
+  --background: var(--cream-50);
+  --foreground: var(--ink-900);
 
-  --muted: oklch(0.24 0.016 280);
-  --muted-foreground: oklch(0.7 0.008 280);
+  --card: var(--cream-100);
+  --card-foreground: var(--ink-900);
 
-  --accent: oklch(0.28 0.06 280);
-  --accent-foreground: oklch(0.86 0.06 277);
+  --popover: var(--cream-100);
+  --popover-foreground: var(--ink-900);
+
+  --primary: var(--emerald-500);
+  --primary-foreground: #071007;
+
+  --secondary: var(--cream-200);
+  --secondary-foreground: var(--ink-800);
+
+  --muted: var(--cream-200);
+  --muted-foreground: var(--ink-500);
+
+  --accent: var(--emerald-50);
+  --accent-foreground: var(--emerald-700);
 
   --destructive: oklch(0.645 0.19 25);
   --destructive-foreground: oklch(0.985 0 0);
 
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.6 0.16 277);
+  --border: var(--cream-200);
+  --input: var(--cream-300);
+  --ring: var(--emerald-500);
 
-  --chart-1: oklch(0.7 0.16 277);
-  --chart-2: oklch(0.65 0.16 175);
+  --sidebar: var(--cream-100);
+  --sidebar-foreground: var(--ink-800);
+
+  --chart-1: var(--emerald-400);
+  --chart-2: var(--amber-400);
   --chart-3: oklch(0.73 0.16 60);
   --chart-4: oklch(0.6 0.19 325);
   --chart-5: oklch(0.58 0.17 220);
@@ -107,23 +187,51 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  /* Warm cream/ink landing palette (Bolt design language) */
-  --color-cream-50: #fdfaf3;
-  --color-cream-100: #faf4e7;
-  --color-cream-200: #f3e9d3;
-  --color-cream-300: #e9dab8;
-  --color-ink-400: #8b8474;
-  --color-ink-500: #6b6353;
-  --color-ink-600: #4f4637;
-  --color-ink-700: #3a3225;
-  --color-ink-800: #2a241a;
-  --color-ink-900: #1e1912;
+  /* Warm cream/ink landing palette — resolves against :root/.dark */
+  --color-cream-50: var(--cream-50);
+  --color-cream-100: var(--cream-100);
+  --color-cream-200: var(--cream-200);
+  --color-cream-300: var(--cream-300);
+  --color-cream-400: var(--cream-400);
+
+  --color-ink-400: var(--ink-400);
+  --color-ink-500: var(--ink-500);
+  --color-ink-600: var(--ink-600);
+  --color-ink-700: var(--ink-700);
+  --color-ink-800: var(--ink-800);
+  --color-ink-900: var(--ink-900);
+
+  /* Brand accent + secondary scale (adapts to theme) */
+  --color-emerald-50: var(--emerald-50);
+  --color-emerald-100: var(--emerald-100);
+  --color-emerald-200: var(--emerald-200);
+  --color-emerald-300: var(--emerald-300);
+  --color-emerald-400: var(--emerald-400);
+  --color-emerald-500: var(--emerald-500);
+  --color-emerald-600: var(--emerald-600);
+  --color-emerald-700: var(--emerald-700);
+  --color-emerald-800: var(--emerald-800);
+  --color-emerald-900: var(--emerald-900);
+
+  --color-amber-50: var(--amber-50);
+  --color-amber-100: var(--amber-100);
+  --color-amber-200: var(--amber-200);
+  --color-amber-300: var(--amber-300);
+  --color-amber-400: var(--amber-400);
+  --color-amber-500: var(--amber-500);
+  --color-amber-600: var(--amber-600);
+  --color-amber-700: var(--amber-700);
+  --color-amber-800: var(--amber-800);
+  --color-amber-900: var(--amber-900);
 
   --font-sans: var(--font-geist-sans);
   --font-heading: var(--font-inter);
@@ -136,6 +244,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
 
   --animate-slide-up: slide-up 0.45s ease-out both;
   --animate-fade-in: fade-in 0.45s ease-out both;
@@ -199,6 +309,11 @@
 
   html {
     scroll-behavior: smooth;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   body {
@@ -206,7 +321,7 @@
   }
 
   ::selection {
-    background: color-mix(in oklch, var(--primary) 22%, transparent);
+    background: color-mix(in oklch, var(--ring) 24%, transparent);
   }
 }
 
@@ -216,8 +331,8 @@
   background-image: linear-gradient(
     to right,
     var(--color-primary),
-    oklch(0.55 0.22 300),
-    oklch(0.55 0.22 330)
+    color-mix(in oklch, var(--color-primary) 65%, var(--color-amber-500)),
+    color-mix(in oklch, var(--color-primary) 85%, var(--color-amber-400))
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -228,21 +343,22 @@
 @utility notebook-page {
   position: relative;
   border-radius: 0.75rem;
-  border: 1px solid color-mix(in oklch, var(--color-muted-foreground) 18%, transparent);
-  background-color: color-mix(in oklch, var(--color-background) 92%, oklch(0.85 0.06 85) 8%);
+  border: 1px solid color-mix(in oklch, var(--color-muted-foreground) 20%, transparent);
+  background-color: color-mix(in oklch, var(--color-card) 96%, var(--color-emerald-100) 4%);
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-foreground) 4%, transparent);
   background-image: linear-gradient(
       to right,
-      color-mix(in oklch, oklch(0.65 0.2 25) 55%, transparent) 0,
-      color-mix(in oklch, oklch(0.65 0.2 25) 55%, transparent) 1.5px,
+      color-mix(in oklch, var(--color-amber-500) 45%, transparent) 0,
+      color-mix(in oklch, var(--color-amber-500) 45%, transparent) 1.5px,
       transparent 1.5px
     ),
     linear-gradient(
       to bottom,
-      color-mix(in oklch, var(--color-muted-foreground) 16%, transparent) 1px,
+      color-mix(in oklch, var(--color-muted-foreground) 14%, transparent) 1px,
       transparent 1px
     );
-  background-position: 0 0, 0 0;
-  background-size: 2.5rem 100%, 100% 1.6rem;
+  background-position: 0 0, 40px 0;
+  background-size: calc(100% - 40px) 100%, 100% 1.6rem;
 }
 
 @utility notebook-punch {

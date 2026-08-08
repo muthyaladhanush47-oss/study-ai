@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ScanText, Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { AnimatedFlashcard } from "@/components/landing/animated-flashcard";
 import { LandingReveal } from "@/components/landing/landing-reveal";
 
@@ -45,7 +45,7 @@ export function LandingHero() {
             </Link>
             <a
               href="#how-it-works"
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-cream-300 bg-white/70 px-7 py-3.5 text-base font-semibold text-ink-800 transition hover:border-emerald-300 hover:text-emerald-700"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-cream-300 bg-card/70 px-7 py-3.5 text-base font-semibold text-ink-800 transition hover:border-emerald-300 hover:text-emerald-700"
             >
               See how it works
             </a>
@@ -64,18 +64,11 @@ export function LandingHero() {
           </div>
         </LandingReveal>
 
-        <LandingReveal delay={0.15} className="flex justify-center lg:justify-end">
-          <div className="relative">
-            <div className="absolute -left-10 top-8 hidden animate-float rounded-2xl border border-cream-200 bg-white/90 px-4 py-2.5 text-xs font-semibold text-ink-700 shadow-lg sm:flex sm:items-center sm:gap-2">
-              <ScanText className="h-4 w-4 text-emerald-600" />
-              OCR done — 12 pages
-            </div>
-            <AnimatedFlashcard />
-            <div className="absolute -bottom-4 -right-6 hidden animate-float items-center gap-2 rounded-2xl border border-cream-200 bg-white/90 px-4 py-2.5 text-xs font-semibold text-ink-700 shadow-lg sm:flex [animation-delay:1.5s]">
-              <Wand2 className="h-4 w-4 text-amber-500" />
-              Flashcards ready
-            </div>
-          </div>
+        <LandingReveal
+          delay={0.15}
+          className="flex justify-center px-4 pt-14 sm:px-6 lg:justify-end lg:px-2 lg:pt-0"
+        >
+          <AnimatedFlashcard className="w-full max-w-[360px] sm:max-w-[380px]" />
         </LandingReveal>
       </div>
     </section>

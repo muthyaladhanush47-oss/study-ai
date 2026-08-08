@@ -47,11 +47,11 @@ export default async function ProfilePage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <Card>
         <CardContent className="flex flex-col items-center gap-5 p-8 sm:flex-row sm:items-start">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-fuchsia-600 text-2xl font-bold text-white">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-400 text-2xl font-bold text-white">
             {getInitials(user.user_metadata?.full_name as string, user.email)}
           </div>
           <div className="flex-1 text-center sm:text-left">
-            <h1 className="font-heading text-2xl font-bold tracking-tight">
+            <h1 className="font-display text-2xl font-bold tracking-tight text-ink-900">
               {(user.user_metadata?.full_name as string) || "Student"}
             </h1>
             <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-muted-foreground sm:justify-start">
@@ -130,7 +130,7 @@ function Stat({ value, label }: { value: string; label: string }) {
   return (
     <Card>
       <CardContent className="p-5">
-        <p className="font-heading text-2xl font-bold tracking-tight">{value}</p>
+        <p className="font-display text-2xl font-bold tracking-tight text-ink-900">{value}</p>
         <p className="text-sm text-muted-foreground">{label}</p>
       </CardContent>
     </Card>

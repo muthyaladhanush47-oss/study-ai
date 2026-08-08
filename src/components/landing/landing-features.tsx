@@ -71,7 +71,7 @@ export function LandingFeatures() {
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((feature, i) => (
             <LandingReveal key={feature.title} delay={(i % 3) * 0.1}>
-              <div className="group h-full rounded-3xl border border-cream-200 bg-white/80 p-7 shadow-sm transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg">
+              <div className="group h-full rounded-3xl border border-cream-200 bg-card/80 p-7 shadow-sm transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm transition group-hover:scale-105">
                   <feature.icon className="h-6 w-6" />
                 </div>

@@ -178,7 +178,7 @@ the ad slots render a subtle **Advertisement** placeholder instead, so the app w
 | `NVIDIA_MODEL`            | No       | Text model, default `deepseek-ai/deepseek-v4-flash-0731` |
 | `NVIDIA_BASE_URL`         | No       | NVIDIA NIM endpoint, default `https://integrate.api.nvidia.com/v1` |
 | `VISION_API_KEY`          | Yes      | Vision API key (a Google Gemini key works) |
-| `VISION_MODEL`            | No       | OCR vision model, default `gemini-2.5-flash` |
+| `VISION_MODEL`            | No       | OCR vision model, default `gemini-3.6-flash` |
 | `VISION_BASE_URL`         | No       | Custom vision endpoint (optional)        |
 | `NEXT_PUBLIC_APP_URL`     | No       | Canonical app URL (default localhost)    |
 | `NEXT_PUBLIC_AD_CLIENT`   | No       | Google AdSense publisher ID              |
@@ -189,7 +189,7 @@ the ad slots render a subtle **Advertisement** placeholder instead, so the app w
 ## 6. Customization ideas
 
 - Try other NVIDIA NIM models (e.g. `deepseek-ai/deepseek-v4-flash-0731`) via `NVIDIA_MODEL`. Note the older `deepseek-ai/deepseek-v4-flash` was retired by NVIDIA on 2026-08-07.
-- Swap the OCR vision model (e.g. `gemini-2.5-pro`) via `VISION_MODEL`.
+- Swap the OCR vision model (e.g. `gemini-3.6-flash`) via `VISION_MODEL`. Note the older `gemini-2.5-flash` was deprecated and returns 404.
 - Add per-user limits/quotas using `study_activities`.
 - Add PDF chapter detection before summarization.
 - Let learners pick a preferred model or tutor persona from the profile page.

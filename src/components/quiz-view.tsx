@@ -156,7 +156,7 @@ export function QuizView({ documentId }: { documentId: string }) {
           <div className="flex items-center gap-2">
             <div className="h-2 w-32 overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-fuchsia-500 transition-all"
+                className="h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all"
                 style={{ width: `${((index + 1) / questions.length) * 100}%` }}
               />
             </div>
@@ -291,7 +291,7 @@ export function QuizView({ documentId }: { documentId: string }) {
 
   return (
     <Card className="flex flex-col items-center justify-center gap-4 p-10 text-center shadow-sm">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-fuchsia-600 text-white shadow-lg">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-400 text-white shadow-lg">
         <ListChecks className="h-7 w-7" />
       </div>
       <div>

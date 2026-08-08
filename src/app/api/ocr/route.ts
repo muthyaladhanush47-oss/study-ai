@@ -8,7 +8,7 @@ import {
   renderPdfPage,
   type PdfHandle,
 } from "@/lib/ocr";
-import { transcribePage } from "@/lib/ai/vision";
+import { transcribePage, VisionApiError } from "@/lib/ai/vision";
 import { MAX_STORED_CHARS } from "@/lib/pdf";
 import { logOperation, makeRequestId } from "@/lib/logger";
 
@@ -266,8 +266,33 @@ export async function POST(request: NextRequest) {
               page: i,
               image,
               mime,
+              onRetry: ({ attempt, delayMs }) => {
+                logOperation({
+                  requestId,
+                  userId: user.id,
+                  documentId,
+                  operation: "ocr.rate_limit_wait",
+                  stage: "transcribe",
+                  page: i,
+                  totalPages,
+                  attempt,
+                  delayMs,
+                });
+                controller.enqueue(
+                  sse("waiting", {
+                    page: i,
+                    total: totalPages,
+                    attempt,
+                    message: "Gemini is temporarily rate-limiting OCR. Retrying…",
+                  }),
+                );
+              },
             });
           } catch (err) {
+            // Rate-limit and quota errors are already complete, user-facing
+            // messages — let the outer catch format them. Everything else is
+            // page-specific and keeps the existing wrapping.
+            if (err instanceof VisionApiError) throw err;
             const detail =
               err instanceof Error ? err.message : "unknown error";
             throw new Error(`OCR failed on page ${i}: ${detail}`);
@@ -337,10 +362,14 @@ export async function POST(request: NextRequest) {
           durationMs: Date.now() - started,
         });
       } catch (err) {
+        // Quota/rate-limit exhaustion are already clean, complete sentences;
+        // keep them verbatim. Everything else keeps the existing wrapping.
         const message =
-          err instanceof Error
-            ? `OCR failed: ${err.message}`
-            : "OCR failed unexpectedly.";
+          err instanceof VisionApiError
+            ? err.message
+            : err instanceof Error
+              ? `OCR failed: ${err.message}`
+              : "OCR failed unexpectedly.";
         await markFailed(supabase, documentId, message);
         logOperation({
           requestId,

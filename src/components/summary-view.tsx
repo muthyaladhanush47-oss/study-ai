@@ -26,7 +26,7 @@ const sectionMeta: Record<
 > = {
   definition: { label: "Definition", emoji: "✍", icon: Pencil, accent: "text-sky-600 dark:text-sky-400" },
   remember: { label: "Important Points", emoji: "⭐", icon: Star, accent: "text-amber-600 dark:text-amber-400" },
-  trick: { label: "Trick", emoji: "💡", icon: Lightbulb, accent: "text-violet-600 dark:text-violet-400" },
+  trick: { label: "Trick", emoji: "💡", icon: Lightbulb, accent: "text-emerald-600 dark:text-emerald-400" },
   equation: { label: "Equation", emoji: "🌳", icon: Sigma, accent: "text-emerald-600 dark:text-emerald-400" },
   examQuestions: { label: "Exam questions", emoji: "📝", icon: ListChecks, accent: "text-rose-600 dark:text-rose-400" },
   fiveMarkAnswer: { label: "5 mark answer", emoji: "🔥", icon: Flame, accent: "text-orange-600 dark:text-orange-400" },
@@ -187,7 +187,7 @@ export function NotesView({ documentId }: { documentId: string }) {
           <section key={i} aria-label={note.chapter}>
             {/* Chapter header */}
             <div className="mb-4 mt-8 flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-fuchsia-600 text-lg font-bold text-white shadow-md">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-400 text-lg font-bold text-white shadow-md">
                 {i + 1}
               </span>
               <h3 className="font-hand text-2xl font-bold tracking-tight sm:text-3xl">
@@ -214,7 +214,7 @@ export function NotesView({ documentId }: { documentId: string }) {
 
   return (
     <Card className="flex flex-col items-center justify-center gap-4 p-10 text-center shadow-sm">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-fuchsia-600 text-white shadow-lg">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-400 text-white shadow-lg">
         <NotepadText className="h-7 w-7" />
       </div>
       <div>

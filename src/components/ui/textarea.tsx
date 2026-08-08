@@ -10,7 +10,7 @@ export function Textarea({ label, className, id, ...props }: TextareaProps) {
       {label && (
         <label
           htmlFor={id}
-          className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          className="block text-sm font-medium text-ink-700 dark:text-ink-300"
         >
           {label}
         </label>
@@ -18,7 +18,7 @@ export function Textarea({ label, className, id, ...props }: TextareaProps) {
       <textarea
         id={id}
         className={cn(
-          "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 shadow-sm transition placeholder:text-zinc-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500",
+          "w-full rounded-xl border border-ink-200 bg-card px-3 py-2.5 text-sm text-ink-900 shadow-sm transition placeholder:text-ink-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-ink-700 dark:bg-card dark:text-ink-100 dark:placeholder:text-ink-500",
           className,
         )}
         {...props}

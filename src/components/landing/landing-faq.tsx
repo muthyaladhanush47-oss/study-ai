@@ -51,7 +51,7 @@ export function LandingFaq() {
         <div className="mt-12 space-y-3">
           {FAQS.map((faq, i) => (
             <LandingReveal key={faq.q} delay={i * 0.05}>
-              <details className="group rounded-2xl border border-cream-200 bg-white/80 p-5 shadow-sm open:shadow-md">
+              <details className="group rounded-2xl border border-cream-200 bg-card/80 p-5 shadow-sm open:shadow-md">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-base font-semibold text-ink-900 sm:text-lg">
                   {faq.q}
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-cream-300 text-ink-500 transition group-open:rotate-45 group-open:text-emerald-600">

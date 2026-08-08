@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileText, ScanText, UploadCloud } from "lucide-react";
+import { FileImage, FileText, Loader2, ScanText, UploadCloud } from "lucide-react";
 import { cn, formatBytes } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -236,10 +236,10 @@ export function UploadDialog({
       <Dialog open={open} onOpenChange={(next) => !uploading && setOpen(next)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Upload notes</DialogTitle>
+            <DialogTitle>Upload your sources</DialogTitle>
             <DialogDescription>
-              Typed PDF or a photo of handwritten notes, a whiteboard or a
-              textbook page — StudyAI reads them all. Max 100 MB.
+              Add study material — typed PDFs or photos — and StudyAI turns it
+              into notes, flashcards, quizzes and more.
             </DialogDescription>
           </DialogHeader>
 
@@ -299,24 +299,52 @@ export function UploadDialog({
               <div className="space-y-1.5">
                 <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-fuchsia-500 transition-all duration-200"
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-200"
                     style={{ width: `${Math.max(progress ?? 0, 2)}%` }}
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {progress === 100
-                    ? "Preparing document…"
-                    : progress != null
-                      ? `Uploading file… ${progress}%`
-                      : "Uploading file…"}
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  {stage === "storage" ? (
+                    progress === 100 ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                    ) : null
+                  ) : null}
+                  {stage === "storage" && progress != null && progress < 100
+                    ? `Uploading to your private storage… ${progress}%`
+                    : stage === "storage"
+                      ? "Upload complete — preparing your document…"
+                      : stage === "create"
+                        ? "Creating your document…"
+                        : "Uploading…"}
                 </p>
               </div>
             )}
 
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-              <ScanText className="h-4 w-4 shrink-0 text-primary" />
-              Photos of handwritten notes, whiteboards and book pages are
-              transcribed automatically after upload.
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <ScanText className="h-4 w-4 shrink-0 text-primary" />
+                <p className="text-xs text-muted-foreground">
+                  Photos and scans of handwritten notes are transcribed
+                  automatically with OCR after upload.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-muted-foreground">
+                <span className="flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2.5 py-1">
+                  <FileText className="h-3 w-3" /> PDF
+                </span>
+                <span className="flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2.5 py-1">
+                  <FileImage className="h-3 w-3" /> JPG
+                </span>
+                <span className="flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2.5 py-1">
+                  <FileImage className="h-3 w-3" /> PNG
+                </span>
+                <span className="flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2.5 py-1">
+                  <FileImage className="h-3 w-3" /> WebP
+                </span>
+                <span className="rounded-full border border-dashed border-border px-2.5 py-1">
+                  up to 100 MB
+                </span>
+              </div>
             </div>
 
             <Input

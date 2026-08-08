@@ -3,6 +3,7 @@ import { getDashboardStats, computeStreak } from "@/lib/analytics";
 import { formatTotalTime } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GoogleAd } from "@/components/ads/google-ad";
+import { BarChart3, Clock3 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function AnalyticsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
           Analytics
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -69,9 +70,18 @@ export default async function AnalyticsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {byType.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                No activity yet — generate your first summary or flashcards.
-              </p>
+              <div className="flex flex-col items-center gap-2 py-6 text-center">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-medium text-foreground">
+                  No study activity yet
+                </p>
+                <p className="max-w-xs text-sm text-muted-foreground">
+                  Generate your first summary, flashcards or quiz and your
+                  study habits will show up here.
+                </p>
+              </div>
             ) : (
               byType.map((item) => (
                 <div key={item.type} className="space-y-1">
@@ -81,7 +91,7 @@ export default async function AnalyticsPage() {
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-primary to-fuchsia-500"
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-400"
                       style={{ width: `${(item.count / byType[0].count) * 100}%` }}
                     />
                   </div>
@@ -109,9 +119,17 @@ export default async function AnalyticsPage() {
                 ))}
               </ul>
             ) : (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                Nothing yet.
-              </p>
+              <div className="flex flex-col items-center gap-2 py-6 text-center">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                  <Clock3 className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-medium text-foreground">
+                  Nothing to show yet
+                </p>
+                <p className="max-w-xs text-sm text-muted-foreground">
+                  Your latest summaries, flashcards and chats will appear here.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>

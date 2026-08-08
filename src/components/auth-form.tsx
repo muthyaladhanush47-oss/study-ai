@@ -89,7 +89,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   return (
     <Card className="w-full max-w-md shadow-xl">
       <CardHeader className="space-y-3 pt-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-fuchsia-600 text-white">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-400 text-white">
           <BookOpenCheck className="h-6 w-6" />
         </div>
         <div>

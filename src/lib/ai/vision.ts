@@ -8,7 +8,7 @@ import { logOperation } from "@/lib/logger";
  * The provider is intentionally configurable so any compatible vision API can
  * be plugged in later:
  *   - VISION_API_KEY   (required)
- *   - VISION_MODEL     (default gemini-2.5-flash)
+ *   - VISION_MODEL     (default gemini-3.6-flash)
  *   - VISION_BASE_URL  (optional; only set when using a custom endpoint)
  *
  * The current implementation uses the official @google/genai SDK, so a Google
@@ -17,7 +17,7 @@ import { logOperation } from "@/lib/logger";
  */
 
 const VISION_API_KEY = process.env.VISION_API_KEY;
-const VISION_MODEL = process.env.VISION_MODEL || "gemini-2.5-flash";
+const VISION_MODEL = process.env.VISION_MODEL || "gemini-3.6-flash";
 const VISION_BASE_URL = process.env.VISION_BASE_URL;
 
 export type PageImage = {
@@ -72,6 +72,100 @@ function getClient(): GoogleGenAI {
   return client;
 }
 
+export type VisionErrorKind =
+  | "rate_limit" // temporary 429 — safe to retry with backoff
+  | "quota_exhausted" // daily/monthly quota used up — do NOT retry
+  | "auth" // 401/403 — configuration problem
+  | "model_unavailable" // 404 — wrong model/endpoint
+  | "other"; // 400, 5xx, network, unknown
+
+/**
+ * Structured vision error so callers can distinguish retryable rate limits
+ * from exhausted quotas and other failures. Never embeds raw API payloads.
+ */
+export class VisionApiError extends Error {
+  readonly kind: VisionErrorKind;
+  readonly status: number | null;
+  /** Retry delay suggested by the API (Google rpc.RetryInfo), if any. */
+  readonly retryAfterMs: number | null;
+
+  constructor(
+    kind: VisionErrorKind,
+    message: string,
+    options: { status?: number | null; retryAfterMs?: number | null } = {},
+  ) {
+    super(message);
+    this.name = "VisionApiError";
+    this.kind = kind;
+    this.status = options.status ?? null;
+    this.retryAfterMs = options.retryAfterMs ?? null;
+  }
+}
+
+// Bounded exponential backoff for transient rate limits (5s, 10s, 20s,
+// initial call + 3 retries). Always bounded so a runaway API never burns the
+// whole Vercel function budget inside one page.
+const RETRY_DELAYS_MS = [5_000, 10_000, 20_000];
+const MAX_RETRIES = 3;
+const MAX_RETRY_AFTER_MS = 60_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Parses a Google duration string ("5s", "500ms", "1.5m") to milliseconds.
+ * Returns null for anything unparseable.
+ */
+function parseGoogleDuration(raw: string): number | null {
+  const match = /^\s*(\d+(?:\.\d+)?)\s*(ms|s|m|h)?\s*$/i.exec(raw);
+  if (!match) return null;
+  const value = Number(match[1]);
+  const unit = (match[2] ?? "s").toLowerCase();
+  const factor =
+    unit === "ms" ? 1 : unit === "s" ? 1000 : unit === "m" ? 60_000 : 3_600_000;
+  return Math.round(value * factor);
+}
+
+/**
+ * Extracts the API-provided retry delay from a Google error body. The Gemini
+ * REST error shape carries it as `error.details[].retryDelay` (a
+ * google.rpc.RetryInfo field), e.g. `"retryDelay":"5s"`. This is the closest
+ * equivalent to an HTTP `Retry-After` header in the SDK error.
+ */
+function extractRetryAfterMs(err: unknown): number | null {
+  if (!(err instanceof Error)) return null;
+  try {
+    const parsed = JSON.parse(err.message) as { error?: { details?: unknown } };
+    const details = parsed?.error?.details;
+    if (!Array.isArray(details)) return null;
+    for (const detail of details) {
+      if (detail && typeof detail === "object" && "retryDelay" in detail) {
+        const raw = (detail as { retryDelay?: unknown }).retryDelay;
+        if (typeof raw === "string") {
+          const ms = parseGoogleDuration(raw);
+          if (ms != null && ms > 0) return ms;
+        }
+      }
+    }
+  } catch {
+    // Not a structured API error.
+  }
+  return null;
+}
+
+/**
+ * Distinguishes an exhausted quota from a temporary rate limit. Gemini marks
+ * both as HTTP 429; only the message text tells them apart. Quota errors say
+ * things like "Quota exceeded for metric '..._per_day': 500 per day."
+ */
+function isQuotaExhausted(message: string | null): boolean {
+  if (!message) return false;
+  return /quota|per day|per month|per minute|per hour|per request|requests per|tokens per|daily limit/i.test(
+    message,
+  );
+}
+
 /**
  * Extracts the safe API-provided error message from an @google/genai error.
  *
@@ -98,56 +192,97 @@ function extractApiMessage(err: unknown): string | null {
   return null;
 }
 
-function describeVisionError(err: unknown): Error {
+function describeVisionError(err: unknown): VisionApiError {
   const status =
     err && typeof err === "object" && "status" in err
       ? Number((err as { status?: unknown }).status)
       : NaN;
+  const retryAfterMs = extractRetryAfterMs(err);
   const safeApiMessage = extractApiMessage(err);
   const fallback = err instanceof Error ? err.message : String(err);
 
   if (status === 401) {
-    return new Error("Vision API authentication failed. Check VISION_API_KEY.");
+    return new VisionApiError(
+      "auth",
+      "Vision API authentication failed. Check VISION_API_KEY.",
+      { status, retryAfterMs },
+    );
   }
   if (status === 403) {
-    return new Error("Vision API access denied. Check Gemini API permissions.");
+    return new VisionApiError(
+      "auth",
+      "Vision API access denied. Check Gemini API permissions.",
+      { status, retryAfterMs },
+    );
   }
   if (status === 404) {
-    return new Error(
+    return new VisionApiError(
+      "model_unavailable",
       `Vision API returned 404 for model '${VISION_MODEL}'. Check the model name or endpoint.`,
+      { status, retryAfterMs },
     );
   }
   if (status === 429) {
-    return new Error("Vision API rate limit/quota exceeded.");
+    if (isQuotaExhausted(safeApiMessage)) {
+      return new VisionApiError(
+        "quota_exhausted",
+        "Gemini OCR quota has been reached. Completed pages are saved. Retry later to continue.",
+        { status, retryAfterMs },
+      );
+    }
+    return new VisionApiError(
+      "rate_limit",
+      "Gemini OCR is temporarily unavailable due to rate limits. Your completed pages are saved. Retry later.",
+      { status, retryAfterMs },
+    );
   }
   if (status === 400) {
-    return new Error(
+    return new VisionApiError(
+      "other",
       `Vision API rejected the request: ${safeApiMessage ?? fallback.slice(0, 300)}`,
+      { status, retryAfterMs },
     );
   }
   if (status >= 500 && status <= 599) {
-    return new Error(
+    return new VisionApiError(
+      "other",
       `Vision API service error (${status}): ${safeApiMessage ?? "Please retry."}`,
+      { status, retryAfterMs },
     );
   }
   if (Number.isFinite(status)) {
-    return new Error(
+    return new VisionApiError(
+      "other",
       `Vision API request failed (${status}): ${safeApiMessage ?? "unknown error"}`,
+      { status, retryAfterMs },
     );
   }
-  return new Error(`Vision API request failed: ${fallback.slice(0, 300)}`);
+  return new VisionApiError(
+    "other",
+    `Vision API request failed: ${fallback.slice(0, 300)}`,
+    { status, retryAfterMs },
+  );
 }
 
 /**
  * Transcribes a single page image with the vision model.
  * Pages are always processed one at a time so progress can be reported and
  * one bad page never fails the whole document.
+ *
+ * Transient rate limits (HTTP 429) are retried with bounded exponential
+ * backoff (5s, 10s, 20s, max 3 retries), honoring the API's retryDelay when
+ * provided. Exhausted quotas are NOT retried — they stop cleanly so the
+ * caller can tell the user to come back later.
  */
 export async function transcribePage({
   page,
   image,
   mime,
-}: PageImage): Promise<string> {
+  onRetry,
+}: PageImage & {
+  /** Called before each backoff wait so the caller can stream status. */
+  onRetry?: (info: { attempt: number; delayMs: number }) => void;
+}): Promise<string> {
   const parts = [
     { text: USER_PROMPT },
     { text: `=== PAGE ${page} ===` },
@@ -156,27 +291,46 @@ export async function transcribePage({
     },
   ];
 
-  let response;
-  try {
-    response = await getClient().models.generateContent({
-      model: VISION_MODEL,
-      contents: [{ role: "user", parts }],
-      config: {
-        systemInstruction: { role: "user", parts: [{ text: SYSTEM }] },
-        temperature: 0.1,
-        maxOutputTokens: 6000,
-        httpOptions: { timeout: 120_000 },
-      },
-    });
-  } catch (err) {
-    throw describeVisionError(err);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const response = await getClient().models.generateContent({
+        model: VISION_MODEL,
+        contents: [{ role: "user", parts }],
+        config: {
+          systemInstruction: { role: "user", parts: [{ text: SYSTEM }] },
+          temperature: 0.1,
+          maxOutputTokens: 6000,
+          httpOptions: { timeout: 120_000 },
+        },
+      });
+
+      const raw = response.text?.trim();
+      if (!raw) return "";
+
+      const entries = parseByPage(raw, [page]);
+      return entries[0]?.text ?? "";
+    } catch (err) {
+      const vErr = describeVisionError(err);
+      if (vErr.kind !== "rate_limit" || attempt >= MAX_RETRIES) {
+        throw vErr;
+      }
+      const delayMs =
+        vErr.retryAfterMs && vErr.retryAfterMs > 0
+          ? Math.min(vErr.retryAfterMs, MAX_RETRY_AFTER_MS)
+          : RETRY_DELAYS_MS[attempt];
+      logOperation({
+        operation: "vision.retry",
+        stage: "rate_limit_backoff",
+        page,
+        model: VISION_MODEL,
+        status: vErr.status ?? undefined,
+        attempt: attempt + 1,
+        delayMs,
+      });
+      onRetry?.({ attempt: attempt + 1, delayMs });
+      await sleep(delayMs);
+    }
   }
-
-  const raw = response.text?.trim();
-  if (!raw) return "";
-
-  const entries = parseByPage(raw, [page]);
-  return entries[0]?.text ?? "";
 }
 
 function parseByPage(

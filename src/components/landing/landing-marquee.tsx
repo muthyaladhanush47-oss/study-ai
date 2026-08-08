@@ -20,7 +20,7 @@ export function LandingMarquee() {
   const row = ITEMS.map((item) => (
     <span
       key={item}
-      className="inline-flex shrink-0 items-center gap-2 rounded-full border border-cream-200 bg-white/70 px-4 py-1.5 text-sm font-medium text-ink-700 shadow-sm"
+      className="inline-flex shrink-0 items-center gap-2 rounded-full border border-cream-200 bg-card/70 px-4 py-1.5 text-sm font-medium text-ink-700 shadow-sm"
     >
       <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
       {item}

@@ -36,7 +36,7 @@ export function LandingReviews() {
     <section id="reviews" className="scroll-mt-16 py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <LandingReveal className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-cream-200 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-ink-500">
+          <span className="inline-flex items-center gap-2 rounded-full border border-cream-200 bg-card/70 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-ink-500">
             Reviews
           </span>
           <h2 className="mt-5 font-display text-4xl font-semibold tracking-tight text-ink-900 sm:text-5xl">
@@ -51,7 +51,7 @@ export function LandingReviews() {
         <div className="mt-14 grid gap-5 md:grid-cols-3">
           {SAMPLE_REVIEWS.map((review, i) => (
             <LandingReveal key={i} delay={i * 0.1}>
-              <figure className="flex h-full flex-col justify-between rounded-3xl border border-cream-200 bg-white/80 p-7 shadow-sm">
+              <figure className="flex h-full flex-col justify-between rounded-3xl border border-cream-200 bg-card/80 p-7 shadow-sm">
                 <div>
                   <div className="flex items-center gap-1.5">
                     {Array.from({ length: 5 }).map((_, star) => (

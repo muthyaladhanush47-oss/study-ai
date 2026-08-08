@@ -189,7 +189,7 @@ export function SeoToolPage({
         {/* CTA */}
         <section className="border-t border-border py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-fuchsia-600 to-violet-600 px-6 py-16 text-center text-white sm:px-16">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-700 via-emerald-600 to-emerald-400 px-6 py-16 text-center text-white sm:px-16">
               <div className="absolute inset-0 bg-grid opacity-20" />
               <div className="relative">
                 <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -202,7 +202,7 @@ export function SeoToolPage({
                 <Link href="/signup" className="mt-8 inline-block">
                   <Button
                     size="lg"
-                    className="bg-white text-primary hover:bg-white/90"
+                    className="bg-card text-primary hover:bg-card/90"
                   >
                     Create free account
                     <ArrowRight className="h-4 w-4" />

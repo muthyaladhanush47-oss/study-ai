@@ -61,9 +61,9 @@ function MindNode({ data }: NodeProps) {
       className={cn(
         "rounded-xl border px-4 py-2.5 text-center text-sm font-medium shadow-sm backdrop-blur",
         depth === 0
-          ? "border-primary/40 bg-gradient-to-br from-primary to-fuchsia-600 text-primary-foreground shadow-lg"
+          ? "border-primary/40 bg-gradient-to-br from-emerald-600 to-emerald-400 text-primary-foreground shadow-lg"
           : depth === 1
-            ? "border-fuchsia-400/40 bg-card"
+            ? "border-emerald-400/40 bg-card"
             : "border-border bg-card/90",
       )}
       style={{ maxWidth: 200 }}
@@ -136,7 +136,7 @@ export function MindMapView({ documentId }: { documentId: string }) {
             onClick={generate}
             className="flex flex-col items-center gap-3"
           >
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-fuchsia-600 text-white shadow-lg">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-400 text-white shadow-lg">
               <Network className="h-7 w-7" />
             </div>
             <span className="text-sm font-medium text-muted-foreground">

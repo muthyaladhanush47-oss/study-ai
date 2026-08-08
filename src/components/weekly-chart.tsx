@@ -24,7 +24,7 @@ export function WeeklyChart({
               className={cn(
                 "w-full rounded-md transition-all duration-500",
                 day.count > 0
-                  ? "bg-gradient-to-t from-primary to-fuchsia-500"
+                  ? "bg-gradient-to-t from-emerald-600 to-emerald-400"
                   : "bg-muted",
               )}
               style={{

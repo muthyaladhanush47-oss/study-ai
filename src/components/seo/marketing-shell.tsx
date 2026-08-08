@@ -43,7 +43,7 @@ export function MarketingShell({
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-fuchsia-600 text-white">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-600 to-emerald-400 text-white">
               <BookOpenCheck className="h-4 w-4" />
             </span>
             <span className="font-heading text-lg font-bold tracking-tight">
@@ -84,7 +84,7 @@ export function MarketingShell({
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary to-fuchsia-600 text-white">
+                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-emerald-600 to-emerald-400 text-white">
                   <BookOpenCheck className="h-3 w-3" />
                 </span>
                 <span className="font-heading text-sm font-semibold">

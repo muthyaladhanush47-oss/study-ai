@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { NotesView } from "@/components/summary-view";
 import { Button } from "@/components/ui/button";
+import { GoogleAd } from "@/components/ads/google-ad";
 
 export const metadata: Metadata = {
   title: "AI Notes",
@@ -31,23 +32,33 @@ export default async function SummariesPage({
   if (!doc) notFound();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/dashboard">
-          <Button variant="ghost" size="sm" aria-label="Back to dashboard">
+        <Link href="/documents">
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label="Back to documents"
+            className="rounded-xl"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div>
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+          <h1 className="font-display text-xl font-bold tracking-tight text-ink-900 sm:text-2xl">
             AI Notes
           </h1>
-          <p className="truncate text-sm text-zinc-500 dark:text-zinc-400">
-            {doc.title}
-          </p>
+          <p className="truncate text-sm text-muted-foreground">{doc.title}</p>
         </div>
+        <span className="ml-auto hidden items-center gap-1.5 rounded-full bg-emerald-600/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 sm:inline-flex dark:text-emerald-300">
+          <Sparkles className="h-3 w-3" />
+          AI generated
+        </span>
       </div>
+
       <NotesView documentId={documentId} />
+
+      <GoogleAd slot="studyai-notes" format="auto" className="min-h-20" />
     </div>
   );
 }

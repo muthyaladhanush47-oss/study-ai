@@ -79,7 +79,7 @@ export function LandingHowItWorks() {
         <div className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((step, i) => (
             <LandingReveal key={step.step} delay={i * 0.1}>
-              <div className="h-full rounded-3xl border border-cream-200 bg-white/80 p-6 shadow-sm">
+              <div className="h-full rounded-3xl border border-cream-200 bg-card/80 p-6 shadow-sm">
                 <StepIcon icon={step.icon} step={step.step} />
                 <h3 className="mt-6 font-display text-xl font-semibold text-ink-900">
                   {step.title}
