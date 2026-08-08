@@ -7,6 +7,8 @@ export type OwnedDocument = {
   content: string;
   textSource?: string | null;
   isOcrReady?: boolean | null;
+  processingStatus?: string | null;
+  processingError?: string | null;
 };
 
 export type Profile = {
@@ -27,7 +29,9 @@ export async function getOwnedDocument(
 ): Promise<OwnedDocument | null> {
   const { data: doc } = await supabase
     .from("documents")
-    .select("id, title, text_source, is_ocr_ready")
+    .select(
+      "id, title, text_source, is_ocr_ready, processing_status, processing_error",
+    )
     .eq("id", documentId)
     .eq("user_id", userId)
     .single();
@@ -46,6 +50,8 @@ export async function getOwnedDocument(
     content: truncate(content?.content ?? "", maxChars),
     textSource: doc.text_source,
     isOcrReady: doc.is_ocr_ready,
+    processingStatus: doc.processing_status,
+    processingError: doc.processing_error,
   };
 }
 

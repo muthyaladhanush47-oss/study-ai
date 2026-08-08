@@ -18,6 +18,8 @@ export type ProfileRecord = {
 
 export type TextSource = "pdf" | "ocr" | "scanned";
 
+export type ProcessingStatus = "pending" | "processing" | "ready" | "failed";
+
 export type DocumentRecord = {
   id: string;
   user_id: string;
@@ -29,6 +31,8 @@ export type DocumentRecord = {
   created_at: string;
   text_source?: TextSource | null;
   is_ocr_ready?: boolean | null;
+  processing_status?: ProcessingStatus | null;
+  processing_error?: string | null;
 };
 
 export type StudyActivity = {

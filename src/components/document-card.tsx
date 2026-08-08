@@ -41,6 +41,11 @@ export function DocumentCard({
   const [ocrOpen, setOcrOpen] = useState(false);
 
   const needsOcr = document.text_source === "scanned" && !document.is_ocr_ready;
+  const processing =
+    needsOcr &&
+    (document.processing_status === "pending" ||
+      document.processing_status === "processing");
+  const failed = needsOcr && document.processing_status === "failed";
 
   async function handleDelete() {
     if (!confirm(`Delete "${document.title}"? This cannot be undone.`)) return;
@@ -64,7 +69,26 @@ export function DocumentCard({
             <FileText className="h-5 w-5" />
           </div>
           <div className="flex items-center gap-1">
-            {needsOcr && (
+            {failed && (
+              <Badge
+                variant="outline"
+                className="gap-1 border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300"
+                title={document.processing_error ?? "OCR failed"}
+              >
+                <ScanText className="h-3 w-3" />
+                OCR failed
+              </Badge>
+            )}
+            {processing && (
+              <Badge
+                variant="outline"
+                className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+              >
+                <ScanText className="h-3 w-3 animate-pulse" />
+                Transcribing…
+              </Badge>
+            )}
+            {needsOcr && !processing && !failed && (
               <Badge variant="outline" className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300">
                 <ScanText className="h-3 w-3" />
                 OCR needed
@@ -95,7 +119,23 @@ export function DocumentCard({
             : ""}
         </p>
 
-        {needsOcr && (
+        {failed && (
+          <button
+            type="button"
+            onClick={() => setOcrOpen(true)}
+            className="mt-4 flex items-center justify-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-2 py-2 text-xs font-medium text-red-700 transition hover:bg-red-500/20 dark:text-red-300"
+          >
+            <ScanText className="h-3.5 w-3.5" />
+            Retry OCR
+          </button>
+        )}
+        {processing && (
+          <div className="mt-4 flex items-center justify-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Processing handwritten notes…
+          </div>
+        )}
+        {needsOcr && !processing && !failed && (
           <button
             type="button"
             onClick={() => setOcrOpen(true)}

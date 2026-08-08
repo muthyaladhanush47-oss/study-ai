@@ -5,6 +5,7 @@ import {
   Flame,
   GraduationCap,
   Lightbulb,
+  Loader2,
   NotepadText,
   Pin,
   Star,
@@ -63,27 +64,94 @@ function SectionBlock({ section }: { section: NoteSection }) {
   );
 }
 
+type SseEvent = { event: string; data: Record<string, unknown> };
+
+function parseSseStream(raw: string): SseEvent[] {
+  const events: SseEvent[] = [];
+  for (const block of raw.split("\n\n")) {
+    let event = "message";
+    const dataLines: string[] = [];
+    for (const line of block.split("\n")) {
+      if (line.startsWith("event:")) {
+        event = line.slice(6).trim();
+      } else if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).trim());
+      }
+    }
+    if (dataLines.length === 0) continue;
+    try {
+      events.push({ event, data: JSON.parse(dataLines.join("\n")) });
+    } catch {
+      // ignore malformed frames
+    }
+  }
+  return events;
+}
+
 export function NotesView({ documentId }: { documentId: string }) {
   const [notes, setNotes] = useState<NotesResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
 
   async function generate() {
     setLoading(true);
     setError(null);
+    setProgress(null);
     try {
       const res = await fetch("/api/summarize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId }),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? "Failed to generate notes.");
-      setNotes(body as NotesResult);
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(
+          body?.error ?? `Failed to generate notes (${res.status}).`,
+        );
+      }
+
+      if (!res.body) throw new Error("Failed to generate notes.");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let finished = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        for (const ev of parseSseStream(buffer)) {
+          if (ev.event === "status") {
+            setProgress(String(ev.data.message ?? ""));
+          } else if (ev.event === "error") {
+            throw new Error(
+              String(ev.data.message ?? "Failed to generate notes."),
+            );
+          } else if (ev.event === "result") {
+            setNotes(ev.data as unknown as NotesResult);
+            finished = true;
+            break;
+          }
+        }
+        if (finished) break;
+        const lastBreak = buffer.lastIndexOf("\n\n");
+        if (lastBreak >= 0) buffer = buffer.slice(lastBreak + 2);
+      }
+
+      if (!finished) {
+        throw new Error(
+          "Notes generation timed out. Please try again — partial work is saved.",
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
+      setProgress(null);
     }
   }
 
@@ -160,6 +228,12 @@ export function NotesView({ documentId }: { documentId: string }) {
       {error && (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
+        </p>
+      )}
+      {loading && (
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          {progress ?? "Preparing document…"}
         </p>
       )}
       <Button onClick={generate} loading={loading}>

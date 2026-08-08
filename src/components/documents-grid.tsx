@@ -9,7 +9,7 @@ export async function getDocuments(userId: string) {
   const { data, error } = await supabase
     .from("documents")
     .select(
-      "id, title, file_name, file_path, file_size, page_count, created_at, text_source, is_ocr_ready",
+      "id, title, file_name, file_path, file_size, page_count, created_at, text_source, is_ocr_ready, processing_status, processing_error",
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });

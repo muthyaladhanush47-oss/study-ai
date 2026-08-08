@@ -1,63 +1,49 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { openRouterChat } from "@/lib/openrouter";
-import { extractJson } from "@/lib/ai/extract";
 import { getOwnedDocument, logActivity } from "@/lib/ai/document";
-import type { NotesResult, NoteSection, StudyNote } from "@/types";
+import { chunkDocument, MAX_CHUNK_CHARS } from "@/lib/ai/chunk";
+import {
+  summarizeChunks,
+  synthesizeNotes,
+} from "@/lib/ai/summarize";
+import { logOperation, makeRequestId } from "@/lib/logger";
+import type { NotesResult } from "@/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-const SYSTEM = [
-  "You are an expert study assistant who writes notes the way a great student would.",
-  "Turn the provided study notes into structured, exam-ready notes with handwritten-style sections.",
-  'Return ONLY valid JSON matching this exact schema: {"overview": string, "notes": [{"chapter": string, "sections": [{"kind": "definition", "text": string}]}]}.',
-  "The overview should be 2-3 sentences covering the whole document.",
-  "Split the document into chapters or logical sections. For each chapter build a sections array.",
-  "Allowed section kinds and their content rules:",
-  "- definition: the core concept, written in plain student-friendly words.",
-  "- remember: a bullet titled 'Important Points' — 2-3 short sentences capturing the most important ideas.",
-  "- trick: a memory trick / mnemonic / shortcut. If there is a known mnemonic, include it.",
-  "- equation: a compact formula or equation (use plain text with arrows; the UI renders it large).",
-  "- examQuestions: 2-4 exam-style questions a teacher would actually ask.",
-  "- fiveMarkAnswer: a full 5-mark exam answer (~120-180 words) that would score top marks.",
-  "- oneLineRevision: a single-sentence revision note that captures the whole chapter.",
-  "Every chapter MUST include at least: definition, remember, and oneLineRevision. Include equation, trick, examQuestions and fiveMarkAnswer only when the material supports them.",
-  "Write naturally and concisely, like an excellent student's class notes — not like an essay.",
-].join("\n");
+const encoder = new TextEncoder();
 
-const SCHEMA: Record<NoteSection["kind"], { label: string }> = {
-  definition: { label: "Definition" },
-  remember: { label: "Important Points" },
-  trick: { label: "Trick" },
-  equation: { label: "Equation" },
-  examQuestions: { label: "Exam questions" },
-  fiveMarkAnswer: { label: "5 mark answer" },
-  oneLineRevision: { label: "One line revision" },
-};
-
-function sanitizeSections(raw: unknown): NoteSection[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((s): NoteSection | null => {
-      if (typeof s !== "object" || s === null) return null;
-      const kind = (s as { kind?: unknown }).kind;
-      if (typeof kind !== "string" || !(kind in SCHEMA)) return null;
-      const k = kind as NoteSection["kind"];
-      if (k === "examQuestions") {
-        const items = Array.isArray((s as { items?: unknown }).items)
-          ? (s as { items: unknown[] }).items.map((i) => String(i).trim()).filter(Boolean)
-          : [];
-        return items.length ? { kind: k, items } : null;
-      }
-      const text = String((s as { text?: unknown }).text ?? "").trim();
-      return text ? { kind: k, text } : null;
-    })
-    .filter((s): s is NoteSection => s !== null);
+function sse(event: string, data: unknown) {
+  return encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
+function hasRecentSummary(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, documentId: string) {
+  return supabase
+    .from("study_activities")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("document_id", documentId)
+    .eq("type", "summary")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+}
+
+/**
+ * Chunked AI notes generator.
+ *
+ * Small documents (< MAX_CHUNK_CHARS) are synthesized directly in one safe
+ * request. Larger documents are split into ordered chunks (page boundaries
+ * preserved), each chunk is digested by the model independently, and the
+ * compact digests are then combined into the existing NotesResult structure.
+ * Progress is streamed over Server-Sent Events.
+ */
 export async function POST(request: NextRequest) {
+  const requestId = makeRequestId();
+  const started = Date.now();
   const supabase = await createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -78,74 +64,158 @@ export async function POST(request: NextRequest) {
 
   const doc = await getOwnedDocument(supabase, user.id, documentId);
 
-if (!doc) {
-  return NextResponse.json(
-    { error: "Document not found" },
-    { status: 404 }
-  );
-}
+  if (!doc) {
+    logOperation({
+      requestId,
+      userId: user.id,
+      documentId,
+      operation: "summarize.load_document",
+      error: "Document not found",
+    });
+    return NextResponse.json({ error: "Document not found" }, { status: 404 });
+  }
 
-// ===== DEBUG LOGS =====
-console.log("Document ID:", doc.id);
-console.log("Document title:", doc.title);
-console.log("Document characters:", doc.content.length);
-console.log("Document preview:", doc.content.slice(0, 300));
-// ======================
+  // ---- OCR-aware status checks (backwards compatible) ----
+  const status = doc.processingStatus;
+  const stillNeedsOcr =
+    doc.textSource === "scanned" && doc.isOcrReady === false;
 
-if (!doc.content.trim()) {
-  return NextResponse.json(
-    { error: "This PDF has no extractable text to turn into notes." },
-    { status: 422 },
-  );
-}
-
-  let raw: string;
-
-try {
-  raw = await openRouterChat({
-    system: SYSTEM,
-    messages: [
+  if (status === "pending" || (stillNeedsOcr && !status)) {
+    return NextResponse.json(
+      { error: "Your document is still being processed." },
+      { status: 422 },
+    );
+  }
+  if (status === "processing") {
+    return NextResponse.json(
+      { error: "Your handwritten notes are still being transcribed." },
+      { status: 422 },
+    );
+  }
+  if (status === "failed") {
+    return NextResponse.json(
       {
-        role: "user",
-        content: doc.content,
+        error:
+          doc.processingError ||
+          "Document processing failed. Please retry OCR.",
       },
-    ],
-    temperature: 0.4,
-    maxTokens: 8192,
-    json: true,
-  });
-} catch (error) {
-  console.error("OpenRouter Error:", error);
+      { status: 422 },
+    );
+  }
 
-  return NextResponse.json(
-    {
-      error: "Failed to generate summary",
-      details: error instanceof Error ? error.message : String(error),
-    },
-    { status: 500 }
-  );
-}
+  // ---- Empty content guard ----
+  if (!doc.content.trim()) {
+    return NextResponse.json(
+      {
+        error:
+          "This document does not contain readable text. Please retry OCR or upload a clearer scan.",
+      },
+      { status: 422 },
+    );
+  }
 
-  const parsed = extractJson<NotesResult>(raw);
-  const notes: StudyNote[] = Array.isArray(parsed.notes)
-    ? parsed.notes
-        .map((n) => ({
-          chapter: String(n.chapter ?? "").trim(),
-          sections: sanitizeSections(n.sections),
-        }))
-        .filter((n) => n.chapter && n.sections.length > 0)
-    : [];
-
-  await logActivity(supabase, {
+  logOperation({
+    requestId,
     userId: user.id,
-    documentId: doc.id,
-    type: "summary",
-    title: doc.title,
-    metadata: { noteCount: notes.length, source: "ai-notes" },
+    documentId,
+    operation: "summarize.start",
   });
 
-  return NextResponse.json({
-    overview: typeof parsed.overview === "string" ? parsed.overview : "",
-    notes,
+  const chunked = chunkDocument(doc.content);
+  const chunks = chunked.chunks;
+
+  // A single, small document can be synthesized directly — one safe request.
+  const singleShot =
+    chunks.length <= 1 && doc.content.length <= MAX_CHUNK_CHARS;
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        let result: NotesResult;
+
+        if (singleShot) {
+          controller.enqueue(sse("status", { message: "Preparing document…" }));
+          controller.enqueue(sse("status", { message: "Creating final study notes…" }));
+          result = await synthesizeNotes([], doc.title, doc.content);
+        } else {
+          controller.enqueue(sse("status", { message: "Preparing document…" }));
+
+          const summaries = await summarizeChunks(
+            chunks,
+            (fields) =>
+              logOperation({
+                requestId,
+                userId: user.id,
+                documentId,
+                operation: "summarize.chunk",
+                ...fields,
+              }),
+            (done, total) => {
+              controller.enqueue(
+                sse("status", {
+                  message: `Analyzing section ${done} of ${total}…`,
+                }),
+              );
+            },
+          );
+
+          controller.enqueue(sse("status", { message: "Combining notes…" }));
+          controller.enqueue(sse("status", { message: "Creating final study notes…" }));
+
+          result = await synthesizeNotes(summaries, doc.title);
+        }
+
+        controller.enqueue(sse("result", result));
+
+        // Log one activity per generation (deduped against a very recent one).
+        const noteCount = result.notes.length;
+        const { data: recent } = await hasRecentSummary(
+          supabase,
+          user.id,
+          documentId,
+        );
+        if (!recent) {
+          await logActivity(supabase, {
+            userId: user.id,
+            documentId: doc.id,
+            type: "summary",
+            title: doc.title,
+            metadata: { noteCount, source: "ai-notes" },
+          });
+        }
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "AI summarization failed unexpectedly. Please retry.";
+        logOperation({
+          requestId,
+          userId: user.id,
+          documentId,
+          operation: "summarize.error",
+          error: message,
+        });
+        controller.enqueue(sse("error", { message }));
+      } finally {
+        logOperation({
+          requestId,
+          userId: user.id,
+          documentId,
+          operation: "summarize.complete",
+          chunks: chunks.length,
+          durationMs: Date.now() - started,
+        });
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
   });
 }

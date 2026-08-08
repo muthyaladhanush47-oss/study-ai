@@ -11,21 +11,57 @@ export type PageImage = {
 
 const SYSTEM = [
   "You are an expert transcription engine for students' study notes.",
-  "You will receive one or more images of PDF pages that may contain TYPED and HANDWRITTEN text, diagrams with labels, formulas, margin notes, and highlights.",
-  "Transcribe EVERY page VERBATIM, exactly as it appears.",
-  "Preserve structure: headings, bullet lists, numbered lists, and indentation.",
-  "Write formulas in plain ASCII/LaTeX when readable (e.g. E = mc^2).",
+  "You will receive images of PDF pages or photos that may contain TYPED and HANDWRITTEN text, formulas, diagrams with labels, margin notes, highlights, tables and lists.",
+  "Transcribe EVERYTHING VERBATIM, exactly as it appears. Do not summarize, do not skip content.",
+  "Preserve structure exactly: headings, bullet lists, numbered lists, indentation, and page order.",
+  "Write formulas in plain ASCII/LaTeX when readable (e.g. E = mc^2, a^2 + b^2 = c^2).",
+  "For diagrams, charts, figures and drawings, describe what they show in brackets, e.g. [diagram: mitochondria labelled, pointing to cristae].",
+  "Preserve every heading verbatim, even if it is handwritten or underlined.",
   "For each image, first output the page marker on its own line, then the transcription.",
 ].join("\n");
 
 const USER_PROMPT = [
-  "The images below are pages of the student's notes.",
-  'For each page output exactly:\n=== PAGE <number> ===\n<full transcription>\n',
-  "If a page contains no readable text, output its marker followed by '(no readable text)'.",
+  "The image below is a page of the student's notes.",
+  'Output exactly:\n=== PAGE <number> ===\n<full transcription>\n',
+  "If a page contains no readable text at all, output its marker followed by '(no readable text)'.",
 ].join("\n");
 
 /**
+ * Transcribes a single page image with the vision model.
+ * Used by the OCR pipeline to process pages one at a time so progress
+ * can be reported and one bad page never fails the whole document.
+ */
+export async function transcribePage({
+  page,
+  image,
+  mime,
+}: PageImage): Promise<string> {
+  const parts: OpenRouterContentPart[] = [
+    { type: "text", text: USER_PROMPT },
+    { type: "text", text: `=== PAGE ${page} ===` },
+    {
+      type: "image_url",
+      image_url: {
+        url: `data:${mime ?? "image/png"};base64,${image.toString("base64")}`,
+      },
+    },
+  ];
+
+  const raw = await openRouterChat({
+    model: VISION_MODEL,
+    system: SYSTEM,
+    messages: [{ role: "user", content: parts }],
+    temperature: 0.1,
+    maxTokens: 8192,
+  });
+
+  const entries = parseByPage(raw, [page]);
+  return entries[0]?.text ?? "";
+}
+
+/**
  * Sends all page images in one request and returns per-page transcriptions.
+ * Kept for batch use-cases; the OCR route uses transcribePage for reliability.
  */
 export async function transcribePages(
   images: PageImage[],
@@ -76,8 +112,6 @@ function parseByPage(
     if (pages.length === 1) {
       return [{ page: pages[0], text: raw.trim() }];
     }
-    // Model ignored the markers — give each page an empty slot so the caller
-    // still records progress without crashing.
     return pages.map((page) => ({ page, text: "" }));
   }
 
