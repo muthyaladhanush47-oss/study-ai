@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { logOperation } from "@/lib/logger";
 
 /**
  * Vision OCR provider.
@@ -12,7 +13,7 @@ import { GoogleGenAI } from "@google/genai";
  *
  * The current implementation uses the official @google/genai SDK, so a Google
  * Gemini API key is the compatible option today. Never send rendered page
- * images to deepseek-ai/deepseek-v4-flash (or any other text-only model).
+ * images to the NVIDIA DeepSeek text model (or any other text-only model).
  */
 
 const VISION_API_KEY = process.env.VISION_API_KEY;
@@ -45,6 +46,16 @@ const USER_PROMPT = [
 
 let client: GoogleGenAI | null = null;
 
+function logVisionConfigSafe() {
+  logOperation({
+    operation: "vision.config",
+    visionApiKeyPresent: Boolean(process.env.VISION_API_KEY),
+    visionModelPresent: Boolean(process.env.VISION_MODEL),
+    model: VISION_MODEL,
+    visionBaseUrlPresent: Boolean(process.env.VISION_BASE_URL),
+  });
+}
+
 function getClient(): GoogleGenAI {
   if (!VISION_API_KEY) {
     throw new Error(
@@ -52,6 +63,7 @@ function getClient(): GoogleGenAI {
     );
   }
   if (!client) {
+    logVisionConfigSafe();
     client = new GoogleGenAI({
       apiKey: VISION_API_KEY,
       ...(VISION_BASE_URL ? { httpOptions: { baseUrl: VISION_BASE_URL } } : {}),
@@ -60,60 +72,70 @@ function getClient(): GoogleGenAI {
   return client;
 }
 
+/**
+ * Extracts the safe API-provided error message from an @google/genai error.
+ *
+ * The SDK's non-streaming path throws an ApiError whose `.message` is the
+ * JSON-stringified error body from the API, e.g.
+ *   {"error":{"message":"...","code":404,"status":"NOT_FOUND"}}
+ * We pull out only `error.message` (Gemini's own description) and never the
+ * raw error, which could embed request data. Returns null when the error is
+ * not a structured API error (e.g. a network/fetch failure).
+ */
+function extractApiMessage(err: unknown): string | null {
+  if (!(err instanceof Error)) return null;
+  try {
+    const parsed = JSON.parse(err.message) as {
+      error?: { message?: unknown };
+    };
+    const apiMessage = parsed?.error?.message;
+    if (typeof apiMessage === "string" && apiMessage.trim()) {
+      return apiMessage.trim();
+    }
+  } catch {
+    // Not JSON — plain network/client error; nothing safe to extract.
+  }
+  return null;
+}
+
 function describeVisionError(err: unknown): Error {
-  const message = err instanceof Error ? err.message : String(err);
-  const low = message.toLowerCase();
   const status =
     err && typeof err === "object" && "status" in err
       ? Number((err as { status?: unknown }).status)
       : NaN;
+  const safeApiMessage = extractApiMessage(err);
+  const fallback = err instanceof Error ? err.message : String(err);
 
-  if (
-    status === 401 ||
-    status === 403 ||
-    low.includes("api key") ||
-    low.includes("permission_denied") ||
-    low.includes("unauthorized")
-  ) {
+  if (status === 401) {
+    return new Error("Vision API authentication failed. Check VISION_API_KEY.");
+  }
+  if (status === 403) {
+    return new Error("Vision API access denied. Check Gemini API permissions.");
+  }
+  if (status === 404) {
     return new Error(
-      "Vision API authentication failed. Check VISION_API_KEY.",
+      `Vision API returned 404 for model '${VISION_MODEL}'. Check the model name or endpoint.`,
     );
   }
-  if (
-    status === 429 ||
-    low.includes("resource_exhausted") ||
-    low.includes("quota") ||
-    low.includes("rate limit")
-  ) {
+  if (status === 429) {
+    return new Error("Vision API rate limit/quota exceeded.");
+  }
+  if (status === 400) {
     return new Error(
-      "Vision API rate limit or quota reached. Please wait a moment and retry.",
+      `Vision API rejected the request: ${safeApiMessage ?? fallback.slice(0, 300)}`,
     );
   }
-  if (
-    status === 404 ||
-    low.includes("not_found") ||
-    low.includes("does not exist") ||
-    low.includes("model not found")
-  ) {
-    return new Error("Vision model is unavailable. Check VISION_MODEL.");
-  }
-  if (low.includes("user location is not supported")) {
+  if (status >= 500 && status <= 599) {
     return new Error(
-      "Vision API is not available in your current region. Try a supported region or a different VISION_API_KEY.",
+      `Vision API service error (${status}): ${safeApiMessage ?? "Please retry."}`,
     );
-  }
-  if (status === 400 || low.includes("invalid argument")) {
-    return new Error(
-      "Vision API rejected the request. The page image may be too large.",
-    );
-  }
-  if (status === 500 || status === 502 || status === 503 || status === 504) {
-    return new Error("Vision API is temporarily unavailable. Please retry.");
   }
   if (Number.isFinite(status)) {
-    return new Error(`Vision API request failed (${status}). ${message.slice(0, 200)}`);
+    return new Error(
+      `Vision API request failed (${status}): ${safeApiMessage ?? "unknown error"}`,
+    );
   }
-  return new Error(`Vision API request failed: ${message.slice(0, 300)}`);
+  return new Error(`Vision API request failed: ${fallback.slice(0, 300)}`);
 }
 
 /**

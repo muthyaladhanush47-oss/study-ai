@@ -16,7 +16,7 @@ const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY;
 const NVIDIA_BASE_URL =
   process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1";
 const NVIDIA_MODEL =
-  process.env.NVIDIA_MODEL || "deepseek-ai/deepseek-v4-flash";
+  process.env.NVIDIA_MODEL || "deepseek-ai/deepseek-v4-flash-0731";
 
 export type NvidiaMessage = {
   role: "system" | "user" | "assistant";
@@ -117,6 +117,22 @@ function describeError(err: unknown, timeoutMs: number): Error {
   ) {
     return new Error(
       "The NVIDIA model is unavailable. Check NVIDIA_MODEL.",
+    );
+  }
+  // NVIDIA retires models over time. A 410 Gone (or an explicit
+  // end-of-life / retired / no-longer-available message) means the configured
+  // model was decommissioned, not that the request was malformed.
+  if (
+    status === 410 ||
+    low.includes("end of life") ||
+    low.includes("reached its end of life") ||
+    low.includes("retired") ||
+    low.includes("no longer available") ||
+    low.includes("deprecated") ||
+    low.includes("decommissioned")
+  ) {
+    return new Error(
+      "The configured NVIDIA model is no longer available; it has been retired by NVIDIA. Update NVIDIA_MODEL to a currently supported model.",
     );
   }
   if (status === 400 || low.includes("invalid argument")) {

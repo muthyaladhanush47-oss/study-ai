@@ -30,6 +30,9 @@ function sanitize(fields: LogFields) {
     "mime",
     "model",
     "status",
+    "visionApiKeyPresent",
+    "visionModelPresent",
+    "visionBaseUrlPresent",
   ] as const) {
     if (fields[key] !== undefined) safe[key] = fields[key];
   }

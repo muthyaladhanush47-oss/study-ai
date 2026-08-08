@@ -175,7 +175,7 @@ the ad slots render a subtle **Advertisement** placeholder instead, so the app w
 | `NEXT_PUBLIC_SUPABASE_URL`| Yes      | Supabase project URL                     |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon (public) key       |
 | `NVIDIA_API_KEY`          | Yes      | NVIDIA NIM API key (text AI)             |
-| `NVIDIA_MODEL`            | No       | Text model, default `deepseek-ai/deepseek-v4-flash` |
+| `NVIDIA_MODEL`            | No       | Text model, default `deepseek-ai/deepseek-v4-flash-0731` |
 | `NVIDIA_BASE_URL`         | No       | NVIDIA NIM endpoint, default `https://integrate.api.nvidia.com/v1` |
 | `VISION_API_KEY`          | Yes      | Vision API key (a Google Gemini key works) |
 | `VISION_MODEL`            | No       | OCR vision model, default `gemini-2.5-flash` |
@@ -188,7 +188,7 @@ the ad slots render a subtle **Advertisement** placeholder instead, so the app w
 
 ## 6. Customization ideas
 
-- Try other NVIDIA NIM models (e.g. `deepseek-ai/deepseek-v4-flash`) via `NVIDIA_MODEL`.
+- Try other NVIDIA NIM models (e.g. `deepseek-ai/deepseek-v4-flash-0731`) via `NVIDIA_MODEL`. Note the older `deepseek-ai/deepseek-v4-flash` was retired by NVIDIA on 2026-08-07.
 - Swap the OCR vision model (e.g. `gemini-2.5-pro`) via `VISION_MODEL`.
 - Add per-user limits/quotas using `study_activities`.
 - Add PDF chapter detection before summarization.
