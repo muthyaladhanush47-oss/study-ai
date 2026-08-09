@@ -21,7 +21,7 @@ export function ContactForm() {
     const body = encodeURIComponent(
       `Name: ${name}\nEmail: ${email}\n\n${message}`,
     );
-    window.location.href = `mailto:support@studyai.app?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:ssearch456@gmail.com?subject=${subject}&body=${body}`;
     setSent(true);
   }
 
@@ -32,7 +32,7 @@ export function ContactForm() {
         <p className="font-medium">Thanks for reaching out!</p>
         <p className="max-w-sm text-sm text-muted-foreground">
           Your email app should have opened with your message. If it didn&apos;t,
-          email us directly at support@studyai.app.
+          email us directly at ssearch456@gmail.com.
         </p>
       </div>
     );

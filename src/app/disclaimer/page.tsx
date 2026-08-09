@@ -45,7 +45,7 @@ const sections = [
   {
     heading: "Contact",
     body: [
-      "If you find an error in any generated content, we'd love to know — email support@studyai.app and we'll review it.",
+      "If you find an error in any generated content, we'd love to know — email ssearch456@gmail.com and we'll review it.",
     ],
   },
 ];

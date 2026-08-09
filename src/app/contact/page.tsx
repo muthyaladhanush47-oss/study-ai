@@ -55,10 +55,10 @@ export default function ContactPage() {
             <span>
               Prefer email? Write to us directly at{" "}
               <a
-                href="mailto:support@studyai.app"
+                href="mailto:ssearch456@gmail.com"
                 className="font-medium text-primary underline-offset-4 hover:underline"
               >
-                support@studyai.app
+                ssearch456@gmail.com
               </a>
             </span>
           </div>

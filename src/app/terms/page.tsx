@@ -82,7 +82,7 @@ const sections = [
   {
     heading: "Contact",
     body: [
-      "If you have questions about these terms, email support@studyai.app.",
+      "If you have questions about these terms, email ssearch456@gmail.com.",
     ],
   },
 ];

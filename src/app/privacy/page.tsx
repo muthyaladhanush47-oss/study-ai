@@ -72,7 +72,7 @@ const sections = [
   {
     heading: "Contact us",
     body: [
-      "Questions about this policy or your data? Email support@studyai.app and we'll be happy to help.",
+      "Questions about this policy or your data? Email ssearch456@gmail.com and we'll be happy to help.",
     ],
   },
 ];
