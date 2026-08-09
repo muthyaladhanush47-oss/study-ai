@@ -163,8 +163,10 @@ Open [http://localhost:3000](http://localhost:3000).
 ## 4. Monetization (optional)
 
 Set `NEXT_PUBLIC_AD_CLIENT` to your Google AdSense publisher ID (e.g. `ca-pub-1234567890123456`)
-and optionally `NEXT_PUBLIC_GOOGLE_TAG` for Google Analytics. When the ad client is unset,
-the ad slots render a subtle **Advertisement** placeholder instead, so the app works out of the box.
+and optionally `NEXT_PUBLIC_GA_ID` for Google Analytics 4 (e.g. `G-XXXXXXXXXX`). When the ad
+client is unset, the ad slots render a subtle **Advertisement** placeholder instead, so the app
+works out of the box. When `NEXT_PUBLIC_GA_ID` is unset, Analytics is inert — no script loads
+and no events are sent.
 
 ---
 
@@ -182,7 +184,7 @@ the ad slots render a subtle **Advertisement** placeholder instead, so the app w
 | `VISION_BASE_URL`         | No       | Custom vision endpoint (optional)        |
 | `NEXT_PUBLIC_APP_URL`     | No       | Canonical app URL (default localhost)    |
 | `NEXT_PUBLIC_AD_CLIENT`   | No       | Google AdSense publisher ID              |
-| `NEXT_PUBLIC_GOOGLE_TAG`  | No       | Google Analytics / Tag Manager ID        |
+| `NEXT_PUBLIC_GA_ID`       | No       | Google Analytics 4 measurement ID        |
 
 ---
 

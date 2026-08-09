@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { trackEvent } from "@/lib/analytics-events";
 
 type SseEvent = { event: string; data: Record<string, unknown> };
 
@@ -76,6 +77,7 @@ export function OcrRunner({
     setMessage(null);
     setWaiting(false);
     setError(null);
+    trackEvent("ocr_started", { document_id: documentId });
 
     try {
       const res = await fetch("/api/ocr", {

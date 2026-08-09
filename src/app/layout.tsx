@@ -3,6 +3,7 @@ import { Caveat, Fraunces, Geist, Inter, Kalam, Patrick_Hand } from "next/font/g
 import Script from "next/script";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AdsenseLoader } from "@/components/ads/adsense-loader";
+import { Analytics } from "@/components/analytics";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -105,6 +106,7 @@ export default function RootLayout({
         >
           {children}
         </ThemeProvider>
+        <Analytics />
         <AdsenseLoader adClient={adClient} />
         {adClient && (
           <Script

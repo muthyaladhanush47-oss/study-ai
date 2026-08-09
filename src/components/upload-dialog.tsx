@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
+import { trackEvent } from "@/lib/analytics-events";
 
 const MAX_SIZE = 100 * 1024 * 1024;
 
@@ -158,6 +159,11 @@ export function UploadDialog({
     const ext = file.name.toLowerCase().split(".").pop() ?? "";
     const filePath = `${userId}/${crypto.randomUUID()}.${ext}`;
 
+    trackEvent("upload_started", {
+      file_type: ext,
+      file_size_mb: Math.round(file.size / (1024 * 1024)),
+    });
+
     try {
       // Step 1: send ONLY the file bytes to Supabase Storage (not Vercel).
       setStage("storage");
@@ -210,6 +216,9 @@ export function UploadDialog({
       }
 
       const data = (await res.json()) as UploadResult;
+      trackEvent("upload_completed", {
+        needs_ocr: Boolean(data.needsOcr),
+      });
       setOpen(false);
       setFile(null);
       setTitle("");

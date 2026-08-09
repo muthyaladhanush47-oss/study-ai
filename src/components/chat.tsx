@@ -7,6 +7,7 @@ import { Loader2, MessageSquareText, ScanText, SendHorizontal, Sparkles } from "
 import type { ChatMessage } from "@/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { trackEvent } from "@/lib/analytics-events";
 
 const suggestions = [
   "Teach me this chapter like a college professor",
@@ -30,10 +31,16 @@ export function ChatView({
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const startedRef = useRef(false);
 
   async function send(content?: string) {
     const text = (content ?? input).trim();
     if (!text || loading) return;
+
+    if (!startedRef.current) {
+      startedRef.current = true;
+      trackEvent("chat_started", { document_id: documentId });
+    }
 
     const history: ChatMessage[] = [...messages, { role: "user", content: text }];
     setMessages(history);

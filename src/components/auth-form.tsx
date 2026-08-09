@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AlertCircle, BookOpenCheck, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { trackEvent } from "@/lib/analytics-events";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           },
         });
         if (error) throw error;
+        trackEvent("signup", { method: "email" });
         setNotice(
           "Account created! Check your email to confirm your address, then log in.",
         );
@@ -59,6 +61,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           password,
         });
         if (error) throw error;
+        trackEvent("login", { method: "email" });
         router.push("/dashboard");
         router.refresh();
       }
@@ -83,6 +86,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     if (error) {
       setError(error.message);
       setLoading(false);
+    } else {
+      trackEvent(isSignup ? "signup" : "login", { method: "google" });
     }
   }
 

@@ -13,6 +13,7 @@ import type { QuizQuestion } from "@/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { trackEvent } from "@/lib/analytics-events";
 
 function typeBadge(q: QuizQuestion): string {
   switch (q.type) {
@@ -57,6 +58,9 @@ export function QuizView({ documentId }: { documentId: string }) {
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error ?? "Failed to generate quiz.");
       setQuestions(body.questions ?? []);
+      trackEvent("quiz_started", {
+        count: (body.questions ?? []).length,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {

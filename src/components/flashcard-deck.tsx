@@ -14,6 +14,7 @@ import {
 import type { Flashcard } from "@/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { trackEvent } from "@/lib/analytics-events";
 
 function shuffle<T>(array: T[]): T[] {
   const copy = [...array];
@@ -55,6 +56,9 @@ export function FlashcardDeck({ documentId }: { documentId: string }) {
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error ?? "Failed to generate flashcards.");
       setCards(body.cards ?? []);
+      trackEvent("flashcards_created", {
+        count: (body.cards ?? []).length,
+      });
       setIndex(0);
       setFlipped(false);
       setKnown([]);

@@ -19,6 +19,7 @@ import type { NoteSection, NotesResult } from "@/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { trackEvent } from "@/lib/analytics-events";
 
 const sectionMeta: Record<
   NoteSection["kind"],
@@ -133,6 +134,9 @@ export function NotesView({ documentId }: { documentId: string }) {
             );
           } else if (ev.event === "result") {
             setNotes(ev.data as unknown as NotesResult);
+            trackEvent("summary_created", {
+              chapters: (ev.data as unknown as NotesResult).notes.length,
+            });
             finished = true;
             break;
           }

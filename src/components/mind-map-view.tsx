@@ -15,6 +15,7 @@ import { Loader2, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { MindMapNode } from "@/types";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics-events";
 
 function layoutTree(
   root: MindMapNode,
@@ -102,6 +103,7 @@ export function MindMapView({ documentId }: { documentId: string }) {
       const data = (await res.json()) as { root: MindMapNode };
       setRoot(data.root);
       setExpanded(true);
+      trackEvent("mindmap_created");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
