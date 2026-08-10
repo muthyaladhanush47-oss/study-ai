@@ -54,7 +54,7 @@ const steps = [
     step: "01",
     title: "Upload your PDF",
     description:
-      "Drop in your file (up to 20 MB) — typed PDFs are indexed instantly, scanned ones are OCR'd automatically.",
+      "Drop in your file (up to 100 MB) — typed PDFs are indexed instantly, scanned ones are OCR'd automatically.",
   },
   {
     step: "02",
@@ -81,7 +81,7 @@ const faqs = [
   },
   {
     q: "What PDFs can I upload?",
-    a: "Any PDF up to 20 MB — textbooks, lecture notes, research papers, slides and more. Images (JPG, PNG, WebP) are also supported.",
+    a: "Any PDF up to 100 MB — textbooks, lecture notes, research papers, slides and more. Images (JPG, PNG, WebP) are also supported.",
   },
   {
     q: "Is the PDF summarizer really free?",

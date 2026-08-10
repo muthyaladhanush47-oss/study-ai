@@ -12,6 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/pdf-summarizer", changeFrequency: "weekly" as const, priority: 0.9 },
     { path: "/ai-note-generator", changeFrequency: "weekly" as const, priority: 0.8 },
     { path: "/ocr", changeFrequency: "weekly" as const, priority: 0.9 },
+    { path: "/quiz", changeFrequency: "weekly" as const, priority: 0.9 },
     { path: "/flashcards", changeFrequency: "weekly" as const, priority: 0.9 },
     { path: "/mindmap", changeFrequency: "weekly" as const, priority: 0.9 },
     { path: "/blog", changeFrequency: "weekly" as const, priority: 0.8 },

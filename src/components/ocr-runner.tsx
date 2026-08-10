@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, ScanText } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, ScanText, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -61,22 +62,35 @@ export function OcrRunner({
   const [message, setMessage] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [background, setBackground] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [completedDocId, setCompletedDocId] = useState<string | null>(null);
+  const [activeDocId, setActiveDocId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open || !documentId || running) return;
+    if (!open || !documentId || running || completedDocId === documentId) return;
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, documentId]);
+  }, [open, documentId, running, completedDocId]);
+
+  useEffect(() => {
+    if (!running && background) router.refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, background]);
 
   async function run() {
     if (!documentId) return;
     setRunning(true);
+    setActiveDocId(documentId);
     setPhase("reading");
     setPage(null);
     setTotal(null);
     setMessage(null);
     setWaiting(false);
     setError(null);
+    setBackground(false);
+    setDismissed(false);
+    setCompletedDocId(null);
     trackEvent("ocr_started", { document_id: documentId });
 
     try {
@@ -130,12 +144,14 @@ export function OcrRunner({
             setPhase("error");
             setWaiting(false);
             setError(String(ev.data.message ?? "OCR failed."));
+            setCompletedDocId(documentId);
             finished = true;
             break;
           } else if (ev.event === "done") {
             setPhase("done");
             setWaiting(false);
             setMessage(null);
+            setCompletedDocId(documentId);
             finished = true;
             break;
           }
@@ -152,6 +168,7 @@ export function OcrRunner({
         setError(
           "OCR timed out before finishing. The pages already transcribed were saved — run OCR again to continue.",
         );
+        setCompletedDocId(documentId);
       }
     } catch (err) {
       setPhase("error");
@@ -160,14 +177,29 @@ export function OcrRunner({
           ? err.message
           : "OCR failed. Please try again.",
       );
+      setCompletedDocId(documentId);
     } finally {
       setRunning(false);
     }
   }
 
   function close() {
+    setBackground(false);
+    setDismissed(false);
     onOpenChange(false);
     router.refresh();
+  }
+
+  function runInBackground() {
+    setBackground(true);
+    setDismissed(false);
+    onOpenChange(false);
+  }
+
+  function restore() {
+    setBackground(false);
+    setDismissed(true);
+    onOpenChange(true);
   }
 
   const progressPercent =
@@ -176,22 +208,28 @@ export function OcrRunner({
       : null;
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!running) {
-          onOpenChange(next);
-          if (!next) router.refresh();
-        }
-      }}
-    >
-      <DialogContent className="sm:max-w-md">
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (next) {
+            onOpenChange(true);
+            return;
+          }
+          if (running) {
+            runInBackground();
+          } else {
+            close();
+          }
+        }}
+      >
+      <DialogContent className="max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100vw-2rem)] overflow-y-auto p-4 sm:max-w-md sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ScanText className="h-4 w-4 text-primary" />
-            Transcribing handwritten notes
+          <DialogTitle className="flex items-center gap-2 pr-6 text-base">
+            <ScanText className="h-4 w-4 shrink-0 text-primary" />
+            <span className="min-w-0">Transcribing handwritten notes</span>
           </DialogTitle>
-          <DialogDescription className="truncate">
+          <DialogDescription className="break-words">
             {title ?? "Reading every page with AI vision…"}
           </DialogDescription>
         </DialogHeader>
@@ -262,9 +300,9 @@ export function OcrRunner({
 
         <DialogFooter>
           {phase === "done" ? (
-            <Button onClick={close}>Done</Button>
+            <Button onClick={close} className="w-full sm:w-auto">Done</Button>
           ) : phase === "error" ? (
-            <div className="flex w-full gap-2">
+            <div className="flex w-full flex-col gap-2 sm:flex-row">
               <Button
                 variant="outline"
                 onClick={close}
@@ -280,9 +318,8 @@ export function OcrRunner({
           ) : (
             <Button
               variant="outline"
-              onClick={close}
-              disabled={running}
-              className="text-muted-foreground"
+              onClick={runInBackground}
+              className="w-full text-muted-foreground sm:w-auto"
             >
               Run in background
             </Button>
@@ -290,5 +327,64 @@ export function OcrRunner({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+      {background && !dismissed && (
+        <div className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm flex-col gap-3 rounded-xl border border-border bg-background p-4 shadow-lg sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              {phase === "done" ? (
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+              ) : phase === "error" ? (
+                <AlertTriangle className="h-5 w-5 shrink-0 text-destructive" />
+              ) : (
+                <Loader2
+                  className={cn(
+                    "h-5 w-5 shrink-0 animate-spin",
+                    waiting ? "text-amber-500" : "text-primary",
+                  )}
+                />
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium">
+                  {phase === "done"
+                    ? "Transcription complete"
+                    : phase === "error"
+                      ? "Transcription failed"
+                      : "Transcribing…"}
+                </p>
+                {phase !== "done" && phase !== "error" && (
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {page != null && total != null
+                      ? `Page ${page} of ${total} · ${progressPercent}%`
+                      : message ?? "Reading your handwritten notes…"}
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDismissed(true)}
+              className="shrink-0 rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              aria-label="Dismiss"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {phase === "done" && activeDocId ? (
+            <Button
+              render={<Link href={`/pdf-summarizer?id=${activeDocId}`} />}
+              className="w-full"
+            >
+              View summary
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={restore} className="w-full">
+              {phase === "error" ? "View error" : "Open progress"}
+            </Button>
+          )}
+        </div>
+      )}
+    </>
   );
 }

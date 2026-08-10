@@ -16,7 +16,7 @@ const features = [
   {
     title: "Reads handwriting",
     description:
-      "StudyAI's vision model transcribes handwritten lecture notes, margin doodles-with-labels, and everything in between — verbatim.",
+      "StudyAI's vision model transcribes handwritten lecture notes, margin labels, and everything in between — capturing the text so it becomes searchable and reusable.",
   },
   {
     title: "Works with photos",
@@ -41,7 +41,7 @@ const features = [
   {
     title: "Private and free",
     description:
-      "Your images live in your own secure storage and are never shared. OCR is free with no limits.",
+      "Your images live in your own secure storage and are never sold or shared. OCR is free with no limits.",
   },
 ];
 
@@ -56,7 +56,7 @@ const steps = [
     step: "02",
     title: "Upload the image or PDF",
     description:
-      "Upload it to StudyAI (up to 20 MB). Typed and handwritten content is detected automatically.",
+      "Upload it to StudyAI (up to 100 MB). Typed and handwritten content is detected automatically.",
   },
   {
     step: "03",
@@ -73,7 +73,7 @@ const faqs = [
   },
   {
     q: "Which file types are supported?",
-    a: "PDFs up to 20 MB, plus JPG, PNG and WebP images. Scanned PDFs and photos are transcribed automatically.",
+    a: "PDFs up to 100 MB, plus JPG, PNG and WebP images. Scanned PDFs and photos are transcribed automatically.",
   },
   {
     q: "Can it read math and formulas?",

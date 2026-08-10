@@ -6,6 +6,7 @@ const PRODUCT_LINKS = [
   { href: "/pdf-summarizer", label: "PDF Summarizer" },
   { href: "/ocr", label: "Handwriting OCR" },
   { href: "/flashcards", label: "Flashcards" },
+  { href: "/quiz", label: "Practice Quiz" },
   { href: "/mindmap", label: "Mind Maps" },
 ];
 

@@ -243,7 +243,7 @@ export function UploadDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={(next) => !uploading && setOpen(next)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-h-[calc(100dvh-2rem)] w-full overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Upload your sources</DialogTitle>
             <DialogDescription>

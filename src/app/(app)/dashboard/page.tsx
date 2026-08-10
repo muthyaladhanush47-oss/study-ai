@@ -92,7 +92,7 @@ export default async function DashboardPage() {
             icon={Workflow}
             label="Mind maps"
             sub="Connect the ideas"
-            href="/documents"
+            href="/mindmaps"
             accent="bg-gradient-to-br from-amber-500 to-amber-300"
           />
           <ToolTile

@@ -5,8 +5,8 @@ import { LandingReveal } from "@/components/landing/landing-reveal";
 
 const STATS = [
   ["Up to 100 MB", "per upload"],
-  ["6+", "study tools"],
-  ["100%", "private by default"],
+  ["6", "study tools"],
+  ["Private", "by default"],
 ];
 
 /**
@@ -24,7 +24,7 @@ export function LandingHero() {
         <LandingReveal>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
             <Sparkles className="h-3.5 w-3.5" />
-            Reads handwriting · Free forever · No subscription
+            Reads handwriting · Free · No subscription
           </span>
           <h1 className="mt-6 font-display text-5xl font-semibold leading-[1.05] tracking-tight text-ink-900 sm:text-6xl lg:text-7xl">
             Turn your notes into{" "}

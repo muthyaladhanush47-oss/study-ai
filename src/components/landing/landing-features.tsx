@@ -44,7 +44,7 @@ const FEATURES = [
     icon: Workflow,
     title: "Mind maps",
     description:
-      "See the whole topic at a glance with interactive mind maps that help you connect ideas and memorize faster.",
+      "See the whole topic at a glance with interactive mind maps that show how concepts connect — a popular way to build understanding and recall.",
   },
 ];
 

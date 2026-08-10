@@ -52,7 +52,7 @@ const steps = [
     step: "01",
     title: "Upload your PDF or photo",
     description:
-      "Add a PDF, a lecture slide, or a photo of your handwritten notes. Max 20 MB, processed instantly.",
+      "Add a PDF, a lecture slide, or a photo of your handwritten notes. Max 100 MB, processed instantly.",
   },
   {
     step: "02",

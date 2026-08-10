@@ -36,7 +36,7 @@ const features = [
   {
     title: "Great before exams",
     description:
-      "A glance at a well-made mind map is the fastest way to refresh a whole chapter minutes before the exam begins.",
+      "A glance at a well-made mind map is a fast way to refresh a whole chapter right before the exam begins.",
   },
   {
     title: "Free and private",

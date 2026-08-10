@@ -226,7 +226,7 @@ export function NotesView({ documentId }: { documentId: string }) {
         <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
           StudyAI turns your PDF into clean, notebook-style notes with
           definitions, memory tricks, equations, exam questions and a 5-mark
-          answer — like a friend who took perfect notes for you.
+          answer — like a friend who took thorough notes for you.
         </p>
       </div>
       {error && (

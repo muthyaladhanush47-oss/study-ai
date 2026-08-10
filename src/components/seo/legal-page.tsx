@@ -1,6 +1,10 @@
 import { MarketingShell } from "@/components/seo/marketing-shell";
 
-export type LegalSection = { heading: string; body: string[] };
+export type LegalSection = {
+  heading: string;
+  body: string[];
+  bullets?: string[];
+};
 
 export function LegalPage({
   title,
@@ -47,6 +51,13 @@ export function LegalPage({
                     {paragraph}
                   </p>
                 ))}
+                {section.bullets && section.bullets.length > 0 && (
+                  <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+                    {section.bullets.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           ))}

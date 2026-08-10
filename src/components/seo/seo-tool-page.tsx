@@ -102,9 +102,9 @@ export function SeoToolPage({
           </div>
         </section>
 
-        <GoogleAd slot={adSlot} format="auto" className="mx-auto max-w-6xl px-4 sm:px-6" />
-
         {toolSlot}
+
+        <GoogleAd slot={adSlot} format="auto" className="mx-auto max-w-6xl px-4 sm:px-6" />
 
         {/* Features */}
         <section id="features" className="border-t border-border bg-muted/40 py-20">

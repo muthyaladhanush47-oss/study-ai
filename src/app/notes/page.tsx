@@ -50,7 +50,7 @@ const steps = [
     step: "01",
     title: "Upload your PDF or photo",
     description:
-      "Drop in lecture slides, a textbook chapter, or a photo of your handwritten notes. Max 20 MB, no sign-up friction.",
+      "Drop in lecture slides, a textbook chapter, or a photo of your handwritten notes. Max 100 MB, no sign-up friction.",
   },
   {
     step: "02",

@@ -27,7 +27,7 @@ const FAQS = [
   },
   {
     q: "Are my documents private?",
-    a: "Your files are stored in your own Supabase bucket with row-level security, and every AI request is authenticated to your account. We never sell or share your notes.",
+    a: "Your files are stored in your own Supabase bucket with row-level security, and every AI request is authenticated to your account. We never sell or share your notes, and third-party AI providers process your content only to generate the study tools you request.",
   },
   {
     q: "What if a long PDF doesn't finish in one run?",

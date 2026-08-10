@@ -28,22 +28,39 @@ export const toolNav = [
   { href: "/pdf-summarizer", label: "Summaries", icon: Layers },
   { href: "/flashcards", label: "Flashcards", icon: Sparkles },
   { href: "/quiz", label: "Quiz", icon: ListChecks },
-  { href: "/mindmap", label: "Mind Map", icon: Workflow },
+  { href: "/mindmaps", label: "Mind Map", icon: Workflow },
   { href: "/ocr", label: "Handwriting OCR", icon: GraduationCap },
 ] as const;
+
+/** True when the current path belongs to a nav item (including nested routes). */
+export function isNavActive(
+  href: string,
+  pathname: string,
+  match?: (pathname: string) => boolean,
+): boolean {
+  if (match) return match(pathname);
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** Mind Map lives at the authenticated launcher (/mindmaps) plus per-document routes (/mindmap/[id]). */
+export function isMindMapActive(pathname: string): boolean {
+  return pathname === "/mindmaps" || pathname.startsWith("/mindmap/");
+}
 
 function SideNavLink({
   href,
   label,
   icon: Icon,
   pathname,
+  match,
 }: {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
   pathname: string;
+  match?: (pathname: string) => boolean;
 }) {
-  const isActiveLink = pathname === href || pathname.startsWith(`${href}/`);
+  const isActiveLink = isNavActive(href, pathname, match);
 
   return (
     <Link
@@ -109,6 +126,7 @@ export function Sidebar({ className }: { className?: string }) {
                 label={item.label}
                 icon={item.icon}
                 pathname={pathname}
+                match={item.href === "/mindmaps" ? isMindMapActive : undefined}
               />
             ))}
           </div>
@@ -139,7 +157,7 @@ export function Sidebar({ className }: { className?: string }) {
         <div className="rounded-2xl border border-cream-200 bg-cream-100/70 p-3.5 text-xs text-ink-600 dark:bg-ink-200/5">
           <p className="flex items-center gap-1.5 font-semibold text-ink-900">
             <GraduationCap className="h-3.5 w-3.5 text-emerald-600" />
-            Free forever
+            Free, ad-supported
           </p>
           <p className="mt-1 leading-relaxed">
             Upload one PDF and StudyAI turns it into notes, cards, quizzes and

@@ -31,7 +31,7 @@ const features = [
   {
     title: "Active recall built in",
     description:
-      "Flashcards force you to retrieve the answer before flipping — proven to be far more effective than passive rereading.",
+      "Flashcards are built on active recall — you retrieve the answer before flipping — which research has shown to be more effective than passive rereading.",
   },
   {
     title: "Regenerate anytime",
@@ -50,7 +50,7 @@ const steps = [
     step: "01",
     title: "Upload your notes",
     description:
-      "Add a PDF or a photo of your handwritten notes. Max 20 MB, processed instantly.",
+      "Add a PDF or a photo of your handwritten notes. Max 100 MB, processed instantly.",
   },
   {
     step: "02",
@@ -91,7 +91,7 @@ export default function FlashcardsPage() {
       eyebrow="AI Flashcards"
       icon={Layers}
       title="Turn any PDF into a flashcard deck in one click"
-      subtitle="Upload a PDF or a photo of your handwritten notes and StudyAI generates a ready-to-review flashcard deck with a smooth flip-card review mode. Free, unlimited, and proven to boost retention."
+      subtitle="Upload a PDF or a photo of your handwritten notes and StudyAI generates a ready-to-review flashcard deck with a smooth flip-card review mode. Free, unlimited, and designed to support long-term retention through active recall."
       adSlot="studyai-flashcards"
       features={features}
       steps={steps}

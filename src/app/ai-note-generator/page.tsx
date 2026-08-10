@@ -42,7 +42,7 @@ const features = [
       "Works with typed PDFs, scanned notes and photos of whiteboards — everything is transcribed and then structured into notes.",
   },
   {
-    title: "Free forever",
+    title: "Free and unlimited",
     description:
       "Generate as many notes as you want, free and ad-supported. No subscription, no credit cards.",
   },

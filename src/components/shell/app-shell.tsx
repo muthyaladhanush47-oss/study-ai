@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpenCheck, Menu, Sparkles, UserRound } from "lucide-react";
+import { useState } from "react";
+import {
+  BarChart3,
+  BookOpenCheck,
+  Menu,
+  Sparkles,
+  UserRound,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -22,7 +29,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { navItems, toolNav, Sidebar } from "@/components/shell/sidebar";
+import { navItems, toolNav, Sidebar, isNavActive, isMindMapActive } from "@/components/shell/sidebar";
 
 export function AppShell({
   userEmail,
@@ -34,13 +41,14 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const activeLabel =
-    navItems.find(
-      (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-    )?.label ??
-    toolNav.find(
-      (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+    navItems.find((item) => isNavActive(item.href, pathname))?.label ??
+    toolNav.find((item) =>
+      item.href === "/mindmaps"
+        ? isMindMapActive(pathname)
+        : isNavActive(item.href, pathname),
     )?.label ??
     (pathname.startsWith("/profile") || pathname.startsWith("/analytics")
       ? pathname.startsWith("/profile")
@@ -55,7 +63,7 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-cream-200/80 bg-cream-50/85 px-4 backdrop-blur-md sm:px-6 lg:px-10 dark:bg-background/85">
           <div className="flex items-center gap-2">
-            <Sheet>
+            <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger
                 render={
                   <Button
@@ -70,7 +78,7 @@ export function AppShell({
               </SheetTrigger>
               <SheetContent side="left" className="w-72 p-0">
                 <SheetTitle className="sr-only">Menu</SheetTitle>
-                <MobileMenu />
+                <MobileMenu onNavigate={() => setMenuOpen(false)} />
               </SheetContent>
             </Sheet>
             <h1 className="font-display text-lg font-semibold tracking-tight text-ink-900 sm:text-xl">
@@ -131,20 +139,24 @@ export function AppShell({
   );
 }
 
-function MobileMenu() {
+function MobileMenu({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname();
 
-  const linkClass = (href: string) =>
+  const linkClass = (href: string, match?: (pathname: string) => boolean) =>
     cn(
-      "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-      pathname === href || pathname.startsWith(`${href}/`)
+      "flex items-center gap-2.5 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
+      isNavActive(href, pathname, match)
         ? "bg-emerald-600/10 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
         : "text-ink-600 hover:bg-cream-200/60 hover:text-ink-900 dark:text-ink-400 dark:hover:bg-ink-200/5 dark:hover:text-ink-200",
     );
 
   return (
     <nav className="nice-scroll flex h-full flex-col gap-1 overflow-y-auto p-4">
-      <Link href="/dashboard" className="flex items-center gap-2 px-1 pb-4">
+      <Link
+        href="/dashboard"
+        onClick={onNavigate}
+        className="flex items-center gap-2 px-1 pb-4"
+      >
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-500 text-white shadow-sm">
           <BookOpenCheck className="h-5 w-5" />
         </span>
@@ -157,7 +169,12 @@ function MobileMenu() {
         Workspace
       </p>
       {navItems.map((item) => (
-        <Link key={item.href} href={item.href} className={linkClass(item.href)}>
+        <Link
+          key={item.href}
+          href={item.href}
+          onClick={onNavigate}
+          className={linkClass(item.href)}
+        >
           <item.icon className="h-4 w-4" />
           {item.label}
         </Link>
@@ -171,12 +188,38 @@ function MobileMenu() {
           <Link
             key={item.href}
             href={item.href}
-            className={linkClass(item.href) + " mt-0.5"}
+            onClick={onNavigate}
+            className={linkClass(
+              item.href,
+              item.href === "/mindmaps" ? isMindMapActive : undefined,
+            )}
           >
             <item.icon className="h-4 w-4" />
             {item.label}
           </Link>
         ))}
+      </div>
+
+      <div className="pt-4">
+        <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-500">
+          Account
+        </p>
+        <Link
+          href="/profile"
+          onClick={onNavigate}
+          className={linkClass("/profile")}
+        >
+          <UserRound className="h-4 w-4" />
+          Profile & learning level
+        </Link>
+        <Link
+          href="/analytics"
+          onClick={onNavigate}
+          className={linkClass("/analytics")}
+        >
+          <BarChart3 className="h-4 w-4" />
+          Analytics
+        </Link>
       </div>
 
       <div className="mt-6 flex items-center gap-2 rounded-2xl border border-cream-200 bg-cream-100/70 p-3 dark:bg-ink-200/5">

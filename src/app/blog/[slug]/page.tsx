@@ -127,6 +127,18 @@ export default async function BlogArticlePage({ params }: Params) {
                   {children}
                 </blockquote>
               ),
+              pre: ({ children }) => (
+                <pre className="nice-scroll overflow-x-auto rounded-xl bg-muted p-4 text-sm leading-relaxed">
+                  {children}
+                </pre>
+              ),
+              code: ({ className, children }) => (
+                <code
+                  className={`${className ?? ""} whitespace-pre-wrap break-words`}
+                >
+                  {children}
+                </code>
+              ),
             }}
           >
             {post.body}
